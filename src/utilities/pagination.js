@@ -1,24 +1,23 @@
-const paginateAndSortResults = (data, page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc') => {
-    const sortedData = [...data].sort((a, b) => {
-      if (sortOrder === 'asc') {
-        return a[sortBy] > b[sortBy] ? 1 : -1;
-      } else {
-        return a[sortBy] < b[sortBy] ? 1 : -1;
-      }
-    });
-  
-    const start = (page - 1) * pageSize;
-    const end = page * pageSize;
-  
-    const paginatedData = {
-      results: sortedData.slice(start, end),
-      currentPage: page,
-      totalPages: Math.ceil(sortedData.length / pageSize),
-      totalResults: sortedData.length,
-    };
-  
-    return paginatedData;
+const paginateAndSortResults = async (model, page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc') => {
+  const totalCount = await model.count();
+  const skip = (page - 1) * pageSize;
+
+  const paginatedData = await model.findMany({
+    orderBy: {
+      [sortBy]: sortOrder,
+    },
+    take: pageSize,
+    skip,
+  });
+
+  const totalPages = Math.ceil(totalCount / pageSize);
+
+  return {
+    results: paginatedData,
+    currentPage: page,
+    totalPages,
+    totalResults: totalCount,
   };
-  
-  export default paginateAndSortResults;
-  
+};
+
+export default paginateAndSortResults;

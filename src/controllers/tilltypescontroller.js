@@ -13,8 +13,8 @@ const getAllTillsTypes = async (req, res) => {
         const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
         const tillsTypes = await prisma.tillsTypes.findMany({
             where: { deletedAt: null }, 
-          });
-        const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
+        });
+        const paginatedData = await paginateAndSortResults(prisma.tillsTypes,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
         res.json(paginatedData);
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
@@ -97,6 +97,7 @@ const deleteTillsType = async (req,res)=>{
 const searchTillsTypes = async (req, res) => {
     try {
         const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
+
         const tillsTypes = await prisma.tillsTypes.findMany({
         where: {
             t_type_desc:{
@@ -105,7 +106,9 @@ const searchTillsTypes = async (req, res) => {
             deletedAt:null
         }
         });
-        const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
+        const paginatedData = await paginateAndSortResults(prisma.tillsTypes, Number(page), Number(pageSize),sortBy, sortOrder);
+
+        // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });

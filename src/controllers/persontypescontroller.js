@@ -9,7 +9,7 @@ const getAllPersonTypes = async(req,res)=>{
     const types = await prisma.personTypes.findMany({
         where: { deletedAt: null }
     })
-    const paginatedData = paginateAndSortResults(types, Number(page), Number(pageSize), sortBy, sortOrder);        
+        const paginatedData = await paginateAndSortResults(prisma.personTypes,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
     res.json(paginatedData);
 } catch (error) {
     res.status(500).json({ error: 'No se pudieron obtener registros.' });
@@ -68,7 +68,7 @@ const searchPersonTypes = async (req, res) => {
             deletedAt:null
         }
         });
-        const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
+        const paginatedData = await paginateAndSortResults(prisma.personTypes, Number(page), Number(pageSize),sortBy, sortOrder);
         res.json(paginatedData);
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });
