@@ -6,10 +6,10 @@ import softDelete from '../utilities/softDelete.js';
 const getAllPersonTypes = async(req,res)=>{
     try {
         const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
-    const types = await prisma.personTypes.findMany({
+    const types = {
         where: { deletedAt: null }
-    })
-        const paginatedData = await paginateAndSortResults(prisma.personTypes,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
+    }
+        const paginatedData = await paginateAndSortResults(types,prisma.personTypes,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
     res.json(paginatedData);
 } catch (error) {
     res.status(500).json({ error: 'No se pudieron obtener registros.' });
@@ -60,15 +60,15 @@ const deletePersonType = async (req,res)=>{
 const searchPersonTypes = async (req, res) => {
     try {
         const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
-        const tillsTypes = await prisma.personTypes.findMany({
+        const tillsTypes = {
         where: {
             p_type_desc:{
             contains: req.query.p_type_desc
             },
             deletedAt:null
         }
-        });
-        const paginatedData = await paginateAndSortResults(prisma.personTypes, Number(page), Number(pageSize),sortBy, sortOrder);
+        }
+        const paginatedData = await paginateAndSortResults(tillsTypes,prisma.personTypes, Number(page), Number(pageSize),sortBy, sortOrder);
         res.json(paginatedData);
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });

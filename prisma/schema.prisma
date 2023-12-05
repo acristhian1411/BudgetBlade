@@ -53,7 +53,7 @@ model Persons {
   person_fname    String
   person_lname    String
   person_idnumber String
-  birthDate       DateTime
+  birthDate       DateTime      @db.Date()
   persontype      PersonTypes   @relation(fields: [p_type_id], references: [id])
   p_type_id       Int
   Tills           Tills[]

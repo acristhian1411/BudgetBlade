@@ -11,12 +11,18 @@ import softDelete from '../utilities/softDelete.js';
 const getAllTillsTypes = async (req, res) => {
     try {
         const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
+        var consult = {
+            where: {
+                deletedAt:null,
+            }
+        }
         const tillsTypes = await prisma.tillsTypes.findMany({
             where: { deletedAt: null }, 
         });
-        const paginatedData = await paginateAndSortResults(prisma.tillsTypes,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
+        const paginatedData = await paginateAndSortResults(consult, prisma.tillsTypes, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
         res.json(paginatedData);
     } catch (error) {
+        console.log('para mostrar error',error)
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
     }
   };
@@ -98,15 +104,15 @@ const searchTillsTypes = async (req, res) => {
     try {
         const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
 
-        const tillsTypes = await prisma.tillsTypes.findMany({
+        const tillsTypes = {
         where: {
             t_type_desc:{
             contains: req.query.t_type_desc
             },
             deletedAt:null
         }
-        });
-        const paginatedData = await paginateAndSortResults(prisma.tillsTypes, Number(page), Number(pageSize),sortBy, sortOrder);
+        }
+        const paginatedData = await paginateAndSortResults(tillsTypes,prisma.tillsTypes, Number(page), Number(pageSize),sortBy, sortOrder);
 
         // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
