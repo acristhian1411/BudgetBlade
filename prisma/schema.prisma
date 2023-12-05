@@ -1,0 +1,73 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model TillsTypes {
+  id          Int       @id @default(autoincrement())
+  t_type_desc String    @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  Tills       Tills[]
+}
+
+model TillDetails {
+  id              Int       @id @default(autoincrement())
+  till            Tills     @relation(fields: [till_id], references: [id])
+  till_id         Int
+  person          Persons   @relation(fields: [person_id], references: [person_id])
+  person_id       Int
+  till_det_type   Boolean
+  till_det_desc   String
+  till_det_amount Float
+  till_det_date   DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+}
+
+model Tills {
+  id                  Int           @id @default(autoincrement())
+  person              Persons       @relation(fields: [person_id], references: [person_id])
+  person_id           Int
+  tilltype            TillsTypes    @relation(fields: [t_type_id], references: [id])
+  t_type_id           Int
+  TILL_NAME           String
+  TILL_ACCOUNT_NUMBER String
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  TillDetails         TillDetails[]
+  deletedAt           DateTime?
+}
+
+model Persons {
+  person_id       Int           @id @default(autoincrement())
+  person_fname    String
+  person_lname    String
+  person_idnumber String
+  birthDate       DateTime
+  persontype      PersonTypes   @relation(fields: [p_type_id], references: [id])
+  p_type_id       Int
+  Tills           Tills[]
+  TillDetails     TillDetails[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
+}
+
+model PersonTypes {
+  id          Int       @id @default(autoincrement())
+  p_type_desc String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  Persons     Persons[]
+  deletedAt   DateTime?
+}
