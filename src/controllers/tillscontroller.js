@@ -8,18 +8,36 @@ const getAllTills = async(req,res)=>{
         const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
         const types = {
             where: { deletedAt: null },
-            include:{person:{
-                select:{
-                    person_idnumber:true,
-                    person_fname:true,
-                    person_lname:true
+            select:{
+                id:true,
+                TILL_NAME:true,
+                TILL_ACCOUNT_NUMBER:true,
+                t_type_id:true,
+                person_id:true,
+                person:{
+                    select:{
+                        person_idnumber:true,
+                        person_fname:true,
+                        person_lname:true
+                    }
+                },
+                tilltype:{
+                    select:{
+                        t_type_desc:true
+                    }
+                },
+                TillDetails:{
+                    select:{
+                        till_det_amount:true
+                    }
                 }
-            }}
+            }
         }
         const paginatedData = await paginateAndSortResults(types,prisma.tills,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
         // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
+        console.log(error)
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
     }
 }
