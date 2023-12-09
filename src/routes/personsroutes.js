@@ -5,7 +5,8 @@ import {
   updatePersons,
   deletePersons,
   showPersons,
-  searchPersons
+  searchPersons,
+  personTypesList
 } from '../controllers/personController.js';
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.put('/persons/:id', updatePersons);
 router.delete('/persons/:id', deletePersons);
 router.get('/persons/:id', showPersons);
 router.get('/searchpersons', searchPersons);
+router.get('/personTypesList/:id', personTypesList);
 
 export default router;
 

@@ -1,5 +1,4 @@
 const paginateAndSortResults = async (consult,model, page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc') => {
-  const totalCount = await model.count();
   const skip = (page - 1) * pageSize;
 
   const paginatedData = await model.findMany({
@@ -10,6 +9,7 @@ const paginateAndSortResults = async (consult,model, page = 1, pageSize = 10, so
     take: pageSize,
     skip,
   });
+  const totalCount = await paginatedData.length;
 
   const totalPages = Math.ceil(totalCount / pageSize);
 

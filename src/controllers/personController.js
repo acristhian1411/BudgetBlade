@@ -9,12 +9,20 @@ const getAllPersons = async(req,res)=>{
         var consult = {
             where: {
                 deletedAt:null,
+            },
+            include:{
+                persontype:{
+                    select:{
+                        p_type_desc:true
+                    }
+                }
             }
         }    
         const paginatedData = await paginateAndSortResults(consult,prisma.persons,  Number(page), Number(pageSize), sortBy, sortOrder);
         // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
+        console.log('error',error)
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
     }
 }
@@ -42,6 +50,30 @@ const showPersons = async (req,res)=>{
     res.json(type)
 }
 
+const personTypesList = async(req,res)=>{
+    try {
+        const { page = 1, pageSize = 10, sortBy = 'person_id', sortOrder = 'asc' } = req.query;    
+        var consult = {
+            where: {
+                p_type_id:parseInt(req.params.id),
+                deletedAt:null,
+            },
+            include:{
+                persontype:{
+                    select:{
+                        p_type_desc:true
+                    }
+                }
+            }
+        }    
+        const paginatedData = await paginateAndSortResults(consult,prisma.persons,  Number(page), Number(pageSize), sortBy, sortOrder);
+        // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
+        res.json(paginatedData);
+    } catch (error) {
+        console.log('error',error)
+        res.status(500).json({ error: 'No se pudieron obtener registros.' });
+    }
+}
 const updatePersons = async (req,res)=>{
     const date = new Date(req.body.birthDate)
     req.body.birthDate = date
@@ -92,5 +124,6 @@ export {
     updatePersons,
     deletePersons,
     showPersons,
-    searchPersons
+    searchPersons,
+    personTypesList
   };
