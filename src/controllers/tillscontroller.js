@@ -1,4 +1,4 @@
-import {prisma } from '../db.js'
+import {prisma } from '../utilities/db.js'
 import paginateAndSortResults from '../utilities/pagination.js';
 import softDelete from '../utilities/softDelete.js';
 
