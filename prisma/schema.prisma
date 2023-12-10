@@ -20,18 +20,31 @@ model TillsTypes {
 }
 
 model TillDetails {
-  id              Int       @id @default(autoincrement())
-  till            Tills     @relation(fields: [till_id], references: [id])
+  id              Int         @id @default(autoincrement())
+  till            Tills       @relation(fields: [till_id], references: [id])
   till_id         Int
-  person          Persons   @relation(fields: [person_id], references: [person_id])
+  person          Persons     @relation(fields: [person_id], references: [person_id])
   person_id       Int
+  accountplan     AccountPlan @relation(fields: [account_p_id], references: [id])
+  account_p_id    Int
   till_det_type   Boolean
   till_det_desc   String
   till_det_amount Float
   till_det_date   DateTime
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
   deletedAt       DateTime?
+}
+
+model AccountPlan {
+  id           Int           @id @default(autoincrement())
+  account_pid  Int
+  account_desc String        @unique
+  account_code String        @unique
+  TillDetails  TillDetails[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  deletedAt    DateTime?
 }
 
 model Tills {
