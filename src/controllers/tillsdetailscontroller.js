@@ -32,6 +32,15 @@ const createTillsDetails = async (req,res)=>{
     res.json(type)
 }
 
+const createManyTillsDetails = async (req,res)=>{
+    const till_det_date = new Date(req.body.till_det_date);
+    const type = await prisma.tillDetails.createMany({
+        data:req.body,
+        skipDuplicates: true
+    })
+    res.json(type)
+}
+
 const showTillsDetails = async (req,res)=>{
     const type = await prisma.tills.findFirst({
         where:{
@@ -69,6 +78,7 @@ const deleteTillsDetails = async (req,res)=>{
 export {
     getAllTillsDetails,
     createTillsDetails,
+    createManyTillsDetails,    
     updateTillsDetails,
     deleteTillsDetails,
     showTillsDetails,
