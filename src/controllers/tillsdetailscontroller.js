@@ -21,6 +21,7 @@ const createTillsDetails = async (req,res)=>{
     const type = await prisma.tillDetails.create({
         data:{
             till_id:req.body.till_id,
+            account_p_id:req.body.account_p_id,
             till_det_amount:req.body.till_det_amount,
             till_det_desc:req.body.till_det_desc,
             till_det_date:till_det_date,
