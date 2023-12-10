@@ -2,7 +2,13 @@ import {prisma } from '../utilities/db.js'
 import paginateAndSortResults from '../utilities/pagination.js';
 import softDelete from '../utilities/softDelete.js';
 
-
+/**
+ * Obtiene todos los detalles de caja que no estén eliminados.
+ *
+ * @param {object} req - El objeto de solicitud.
+ * @param {object} res - El objeto de respuesta.
+ * @return {Promise<void>} - La función no devuelve nada.
+ */
 const getAllTillsDetails = async(req,res)=>{
     try {
         const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
@@ -16,6 +22,13 @@ const getAllTillsDetails = async(req,res)=>{
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
     }
 }
+/**
+ * Crea un nuevo registro de detalles de caja en la base de datos.
+ *
+ * @param {Object} req - El objeto de solicitud.
+ * @param {Object} res - El objeto de respuesta.
+ * @return {Promise<Object>} El registro de detalles de caja creado.
+ */
 const createTillsDetails = async (req,res)=>{
     const till_det_date = new Date(req.body.till_det_date);
     const type = await prisma.tillDetails.create({
@@ -31,7 +44,13 @@ const createTillsDetails = async (req,res)=>{
     })
     res.json(type)
 }
-
+/**
+ * Crea múltiples detalles de caja.
+ *
+ * @param {Object} req - El objeto de solicitud.
+ * @param {Object} res - El objeto de respuesta.
+ * @return {Promise} La promesa que contiene los detalles de caja creados.
+ */
 const createManyTillsDetails = async (req,res)=>{
     const till_det_date = new Date(req.body.till_det_date);
     const type = await prisma.tillDetails.createMany({
@@ -40,7 +59,13 @@ const createManyTillsDetails = async (req,res)=>{
     })
     res.json(type)
 }
-
+/**
++ * Recupera los datos de un detalle específico.
++ *
++ * @param {Object} req - El objeto de solicitud.
++ * @param {Object} res - El objeto de respuesta.
++ * @return {Promise} Una promesa que se resuelve a los detalles del cajón.
++ */
 const showTillsDetails = async (req,res)=>{
     const type = await prisma.tills.findFirst({
         where:{
@@ -50,7 +75,13 @@ const showTillsDetails = async (req,res)=>{
     })
     res.json(type)
 }
-
+/**
+ * Actualiza los detalles de la caja.
+ *
+ * @param {Object} req - El objeto de solicitud.
+ * @param {Object} res - El objeto de respuesta.
+ * @return {Promise<Object>} El tipo actualizado.
+ */
 const updateTillsDetails = async (req,res)=>{
     req.body.till_det_date = new Date(req.body.till_det_date)
     const type = await prisma.tillDetails.update({
@@ -62,7 +93,13 @@ const updateTillsDetails = async (req,res)=>{
     })
     res.json(type)
 }
-
+/**
++ * Elimina los detalles del cajón con el ID especificado.
++ *
++ * @param {number} req.params.id - El ID de los detalles del cajón a eliminar.
++ * @param {Object} res - El objeto de respuesta.
++ * @return {Promise} Una promesa que se resuelve cuando los detalles del cajón son eliminados.
++ */
 const deleteTillsDetails = async (req,res)=>{
     try {
         const typeId = parseInt(req.params.id);
