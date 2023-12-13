@@ -1,4 +1,5 @@
 import express from "express";
+import listEndpoints from "express-list-endpoints";
 import tilltypesroutes from './routes/tilltypesroutes.js'
 import persontypesroutes from './routes/persontypesroutes.js'
 import tillsroutes from './routes/tillsroutes.js'
@@ -14,6 +15,11 @@ app.use('/api',tillsroutes)
 app.use('/api',personroutes)
 app.use('/api',tillsdetailsroutes)
 app.use('/api',accountplansroutes)
+
+app.get('/api', (req, res) => {
+    const routes = listEndpoints(app);
+    res.json(routes);
+  });
 app.listen(port,()=>{
     console.log('server on port', port)
 })
