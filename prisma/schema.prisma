@@ -36,6 +36,20 @@ model TillDetails {
   deletedAt       DateTime?
 }
 
+model DetailsTransfer {
+  id                  Int       @id @default(autoincrement())
+  origin_till_id      Int
+  origin              Tills     @relation(name: "OriginTills", fields: [origin_till_id], references: [id])
+  destiny_till_id     Int
+  destiny             Tills     @relation(name: "DestinyTills", fields: [destiny_till_id], references: [id])
+  det_transfer_amount Int
+  det_transfer_obs    String
+  det_transfer_date   DateTime  @db.Date()
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  deletedAt           DateTime?
+}
+
 model AccountPlan {
   id           Int           @id @default(autoincrement())
   account_pid  Int
@@ -48,17 +62,19 @@ model AccountPlan {
 }
 
 model Tills {
-  id                  Int           @id @default(autoincrement())
-  person              Persons       @relation(fields: [person_id], references: [person_id])
+  id                  Int               @id @default(autoincrement())
+  person              Persons           @relation(fields: [person_id], references: [person_id])
   person_id           Int
-  tilltype            TillsTypes    @relation(fields: [t_type_id], references: [id])
+  tilltype            TillsTypes        @relation(fields: [t_type_id], references: [id])
   t_type_id           Int
   TILL_NAME           String
   TILL_ACCOUNT_NUMBER String
-  createdAt           DateTime      @default(now())
-  updatedAt           DateTime      @updatedAt
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
   TillDetails         TillDetails[]
   deletedAt           DateTime?
+  originDetails       DetailsTransfer[] @relation("OriginTills")
+  destinyDetails      DetailsTransfer[] @relation("DestinyTills")
 }
 
 model Persons {
