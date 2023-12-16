@@ -8,6 +8,7 @@ import tillsroutes from './routes/tillsroutes.js'
 import personroutes from './routes/personsroutes.js'
 import tillsdetailsroutes from './routes/tillsdetailsroutes.js'
 import accountplansroutes from './routes/accountplansroutes.js'
+import detailstransferroutes from './routes/detailstransferroutes.js'
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -42,6 +43,7 @@ app.use('/api',tillsroutes)
 app.use('/api',personroutes)
 app.use('/api',tillsdetailsroutes)
 app.use('/api',accountplansroutes)
+app.use('/api',detailstransferroutes)
 app.use('/docs', SwaggerUI.serve, SwaggerUI.setup(swaggerSpec))
 app.get('/docs.json', (req, res)  => {
   res.setHeader('Content-Type', 'application/json')
