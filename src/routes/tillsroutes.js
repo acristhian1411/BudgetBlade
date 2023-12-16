@@ -9,109 +9,173 @@ import {
 } from '../controllers/tillscontroller.js';
 
 const router = express.Router();
-/**
- * @swagger
- * /api/tills:
- *   get:
- *     summary: Retrieve a list of tills
- *     description: Retrieve a list of users from Database. Can be used to populate a list of fake tills when prototyping or testing an API.
- *     parameters:
- *       - in: path
- *         name: page
- *         required: false
- *         description: The page .
- *         schema:
- *           type: integer
- *         example: 1
- *       - in: path
- *         name: pageSize
- *         required: false
- *         description: The quantity of results per page.
- *         schema:
- *           type: integer
- *         example: 15
- *       - in: path
- *         name: sortOrder
- *         required: false
- *         description: The direction of sorting.
- *         example: asc
- *         schema:
- *           type: string
- *       - in: path
- *         name: sortBy
- *         required: false
- *         description: The argument of sorting.
- *         schema:
- *           type: string
- *         example: TILL_NAME
- *     responses:
- *       200:
- *         description: A list of tills.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 results:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: integer
- *                         description: The Till ID.
- *                         example: 0
- *                       TILL_NAME:
- *                         type: string
- *                         description: The till description.
- *                         example: Caja 1
- *                       TILL_ACCOUNT_NUMBER:
- *                         type: string
- *                         description: 
- *                         example: 1234124
- *                       person_id:
- *                         type: integer
- *                         description: The id of the person to whom the till belongs
- *                         example: 1
- *                       t_type_id:
- *                         type: integer
- *                         description: The id of the till type
- *                         example: 1
-*/
 router.get('/tills', getAllTills);
-/**
- * @swagger
- *
- * /api/tills:
- *   post:
- *     produces:
- *       - application/json
- *     parameters:
- *       - TILL_NAME: till description
- *         in: formData
- *         required: true
- *         type: string
- *         example: "Caja1"
- *       - name: TILL_ACCOUNT_NUMBER
- *         in: formData
- *         required: true
- *         type: string
- *         example: 1234124
- *       - name: t_type_id
- *         in: formData
- *         required: true
- *         type: integer
- *         example: 11
- *       - name: person_id
- *         in: formData
- *         required: true
- *         type: integer
- *         example: 123
- */
 router.post('/tills', createTills);
 router.put('/tills/:id', updateTills);
 router.delete('/tills/:id', deleteTills);
 router.get('/tills/:id', showTills);
 router.get('/searchtills', searchTills);
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Tills:
+ *       type: object
+ *       required:
+ *         - title
+ *         - author
+ *         - finished
+ *       properties:
+ *         id:
+ *           type: string
+ *           description: The auto-generated id of the till
+ *         TILL_NAME:
+ *           type: string
+ *           description: The title of your till
+ *         TILL_ACCOUNT_NUMBER:
+ *           type: string
+ *           description: The title of your till
+ *         person_id:
+ *           type: string
+ *           description: The id of the person who owns the till
+ *         t_type_id:
+ *           type: string
+ *           description: The id of the till type
+ *         createdAt:
+ *           type: string
+ *           format: date
+ *           description: The date the till was added
+ *       example:
+ *         id: 22
+ *         TILL_NAME: Caja1
+ *         TILL_ACCOUNT_NUMBER: 12344-4
+ *         person_id: 12
+ *         t_type_id: 21
+ *         createdAt: 2020-03-10T04:05:06.157Z
+ */
+
+/**
+ * @swagger
+ * tags:
+ *   name: Tills
+ *   description: The tills managing API
+ * /api/tills:
+ *   get:
+ *     summary: Lists all the tills
+ *     tags: [Tills]
+ *     responses:
+ *       200:
+ *         description: The list of the tills
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Tills'
+ *   post:
+ *     summary: Create a new till
+ *     tags: [Tills]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/Tills'
+ *     responses:
+ *       200:
+ *         description: The created till.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tills'
+ *       500:
+ *         description: Some server error
+ * /api/searchtills:
+ *   get:
+ *     summary: Get the till by a search value
+ *     tags: [Tills]
+ *     parameters:
+ *       - in: path
+ *         name: t_type_desc
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The search value
+ *     responses:
+ *       200:
+ *         description: The till response by id
+ *         contens:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tills'
+ *       404:
+ *         description: The till was not found
+ * /api/tills/{id}:
+ *   get:
+ *     summary: Get the till by id
+ *     tags: [Tills]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The till id
+ *     responses:
+ *       200:
+ *         description: The till response by id
+ *         contens:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Tills'
+ *       404:
+ *         description: The till was not found
+ *   put:
+ *    summary: Update the till by the id
+ *    tags: [Tills]
+ *    parameters:
+ *      - in: path
+ *        name: id
+ *        schema:
+ *          type: string
+ *        required: true
+ *        description: The till id
+ *    requestBody:
+ *      required: true
+ *      content:
+ *        application/json:
+ *          schema:
+ *            $ref: '#/components/schemas/Tills'
+ *    responses:
+ *      200:
+ *        description: The till was updated
+ *        content:
+ *          application/json:
+ *            schema:
+ *              $ref: '#/components/schemas/Tills'
+ *      404:
+ *        description: The till was not found
+ *      500:
+ *        description: Some error happened
+ *   delete:
+ *     summary: Remove the till by id
+ *     tags: [Tills]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The till id
+ *
+ *     responses:
+ *       200:
+ *         description: The till was deleted
+ *       404:
+ *         description: The till was not found
+ * 
+ */
+
 
 export default router;

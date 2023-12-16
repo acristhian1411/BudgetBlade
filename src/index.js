@@ -14,6 +14,11 @@ const swaggerDefinition = {
     title: 'Expenses',
     version: '1.0.0',
     description: 'API documentation for expenses registration API',
+    contact: {
+      name: 'Pepe Perez',
+      url: "https://pepe.perez.com",
+      email: 'pepeperez@gmail.com',
+    },
   },
   servers: [
     {
@@ -38,6 +43,10 @@ app.use('/api',personroutes)
 app.use('/api',tillsdetailsroutes)
 app.use('/api',accountplansroutes)
 app.use('/docs', SwaggerUI.serve, SwaggerUI.setup(swaggerSpec))
+app.get('/docs.json', (req, res)  => {
+  res.setHeader('Content-Type', 'application/json')
+  res.send(swaggerSpec)
+})
 app.get('/api', (req, res) => {
     const routes = listEndpoints(app);
     res.json(routes);
