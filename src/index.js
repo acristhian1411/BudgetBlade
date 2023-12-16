@@ -44,7 +44,10 @@ app.use('/api',personroutes)
 app.use('/api',tillsdetailsroutes)
 app.use('/api',accountplansroutes)
 app.use('/api',detailstransferroutes)
-app.use('/docs', SwaggerUI.serve, SwaggerUI.setup(swaggerSpec))
+app.use('/docs', 
+SwaggerUI.serve, 
+SwaggerUI.setup(swaggerSpec)
+)
 app.get('/docs.json', (req, res)  => {
   res.setHeader('Content-Type', 'application/json')
   res.send(swaggerSpec)

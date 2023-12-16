@@ -24,9 +24,7 @@ router.get('/searchtillstypes', searchTillsTypes);
  *     TillsTypes:
  *       type: object
  *       required:
- *         - title
- *         - author
- *         - finished
+ *         - t_type_desc
  *       properties:
  *         id:
  *           type: string
