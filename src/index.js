@@ -1,4 +1,6 @@
 import express from "express";
+import swaggerJSDoc  from 'swagger-jsdoc'
+import SwaggerUI from 'swagger-ui-express'
 import listEndpoints from "express-list-endpoints";
 import tilltypesroutes from './routes/tilltypesroutes.js'
 import persontypesroutes from './routes/persontypesroutes.js'
@@ -6,6 +8,26 @@ import tillsroutes from './routes/tillsroutes.js'
 import personroutes from './routes/personsroutes.js'
 import tillsdetailsroutes from './routes/tillsdetailsroutes.js'
 import accountplansroutes from './routes/accountplansroutes.js'
+const swaggerDefinition = {
+  openapi: '3.0.0',
+  info: {
+    title: 'Expenses',
+    version: '1.0.0',
+    description: 'API documentation for expenses registration API',
+  },
+  servers: [
+    {
+    url: `http://${process.env.APP_URL}`,
+    description: 'Development server',
+    }
+  ],
+}
+
+const options = {
+  swaggerDefinition,
+  apis: ['./src/routes/*.js'],
+}
+const swaggerSpec = swaggerJSDoc(options);
 const app = express()
 const port = process.env.PORT 
 app.use(express.json())
@@ -15,7 +37,7 @@ app.use('/api',tillsroutes)
 app.use('/api',personroutes)
 app.use('/api',tillsdetailsroutes)
 app.use('/api',accountplansroutes)
-
+app.use('/docs', SwaggerUI.serve, SwaggerUI.setup(swaggerSpec))
 app.get('/api', (req, res) => {
     const routes = listEndpoints(app);
     res.json(routes);
