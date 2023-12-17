@@ -76,6 +76,22 @@ const showTillsDetails = async (req,res)=>{
     res.json(type)
 }
 /**
++ * Recupera los detalles pertenecientes a una caja específica.
++ *
++ * @param {Object} req - El objeto de solicitud.
++ * @param {Object} res - El objeto de respuesta.
++ * @return {Promise} Una promesa que se resuelve a los detalles del cajón.
++ */
+const showTillsDetailsPerTills = async (req,res)=>{
+    const type = await prisma.tills.findFirst({
+        where:{
+            till_id:parseInt(req.params.id),
+            deletedAt:null
+        }
+    })
+    res.json(type)
+}
+/**
  * Actualiza los detalles de la caja.
  *
  * @param {Object} req - El objeto de solicitud.
@@ -119,4 +135,5 @@ export {
     updateTillsDetails,
     deleteTillsDetails,
     showTillsDetails,
+    showTillsDetailsPerTills
   };
