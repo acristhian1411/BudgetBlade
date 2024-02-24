@@ -13,7 +13,7 @@ import detailstransferroutes from './routes/detailstransferroutes.js'
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
-    title: 'Expenses',
+    title: 'SpendSage',
     version: '1.0.0',
     description: 'API documentation for expenses registration API',
     contact: {
