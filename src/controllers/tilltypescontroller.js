@@ -20,7 +20,7 @@ const getAllTillsTypes = async (req, res) => {
             where: { deletedAt: null }, 
         });
         const paginatedData = await paginateAndSortResults(consult, prisma.tillsTypes, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
-        res.json(paginatedData);
+        res.json(paginatedData,200);;
     } catch (error) {
         console.log('para mostrar error',error)
         res.status(500).json({ error: 'No se pudieron obtener registros.' });

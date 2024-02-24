@@ -38,6 +38,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"axios": "^1.6.7",
 		"daisyui": "^4.4.20",
 		"request": "^2.88.2"
 	}
