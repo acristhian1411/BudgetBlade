@@ -26,6 +26,6 @@
 7. Lanza la aplicación: `npm start` o `npm run dev`
 8. Ve a la documentación de la api en: [http://localhost:3000/docs]
 
-## Imagenes relacionadas
+## Licencia
 
-<!-- ![Documentación](public/img/swagger.png) -->
+Este proyecto está licenciado bajo la Licencia Apache 2.0. Consulta el archivo [LICENSE](LICENSE) para obtener más detalles.
