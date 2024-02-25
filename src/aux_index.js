@@ -1,5 +1,6 @@
 import express from "express";
-import {handler} from '../svelteUI/build/handler.js'
+// import {handler} from '../svelteUI/build/handler.js'
+// const handler = require('../svelteUI/build/handler.js')
 import swaggerJSDoc  from 'swagger-jsdoc'
 import SwaggerUI from 'swagger-ui-express'
 import listEndpoints from "express-list-endpoints";
@@ -57,7 +58,7 @@ app.get('/api', (req, res) => {
     const routes = listEndpoints(app);
     res.json(routes);
   });
-  app.use(handler);
+  // app.use(handler);
   app.listen(port,()=>{
     console.log('server on port', port)
 })

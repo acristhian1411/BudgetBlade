@@ -20,7 +20,7 @@ const getAllTillsTypes = async (req, res) => {
             where: { deletedAt: null }, 
         });
         const paginatedData = await paginateAndSortResults(consult, prisma.tillsTypes, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
-        res.json(paginatedData,200);;
+        res.status(200).json(paginatedData);;
     } catch (error) {
         console.log('para mostrar error',error)
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
@@ -40,7 +40,7 @@ const createTillsType = async (req,res)=>{
             t_type_desc:req.body.t_type_desc
         }
     })
-    res.json(type)
+    res.status(201).json(type)
 }
 
 /**
@@ -56,7 +56,7 @@ const showTillsType = async (req,res)=>{
             deletedAt:null
         }
     })
-    res.json(type)
+    res.status(200).json(type)
 }
 
 
@@ -75,7 +75,7 @@ const updateTillsType = async (req,res)=>{
             t_type_desc:req.body.t_type_desc
         }
     })
-    res.json(type)
+    res.status(200).json(type)
 }
 
 /**

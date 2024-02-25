@@ -1,4 +1,4 @@
-# SpendSage
+# BudgetBlade
 
 SpendSage es una aplicación web diseñada para ayudarte a gestionar tus gastos e ingresos personales de manera eficiente. Con esta aplicación, podrás llevar un registro detallado de tus transacciones financieras y obtener insights valiosos sobre tus hábitos de gasto.
 
