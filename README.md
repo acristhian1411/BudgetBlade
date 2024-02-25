@@ -1,6 +1,6 @@
 # BudgetBlade
 
-SpendSage es una aplicación web diseñada para ayudarte a gestionar tus gastos e ingresos personales de manera eficiente. Con esta aplicación, podrás llevar un registro detallado de tus transacciones financieras y obtener insights valiosos sobre tus hábitos de gasto.
+BudgetBlade es una aplicación diseñada para aquellos que buscan un enfoque preciso y efectivo para administrar sus finanzas personales. Con BudgetBlade, puedes cortar los gastos innecesarios como un cuchillo afilado, creando un presupuesto sólido y alcanzando tus metas financieras con facilidad. ¡Descubre una nueva forma de gestionar tu dinero con BudgetBlade!
 
 ## Características principales
 
@@ -17,8 +17,8 @@ SpendSage es una aplicación web diseñada para ayudarte a gestionar tus gastos 
 
 ## Instalación y configuración
 
-1. Clona el repositorio: `https://github.com/acristhian1411/spendsage.git`
-2. Accede al directorio del proyecto: `cd spendsage`
+1. Clona el repositorio: `https://github.com/acristhian1411/BudgetBlade.git`
+2. Accede al directorio del proyecto: `cd BudgetBlade`
 3. Instala las dependencias: `npm install`
 4. Copia el archivo de configuración: `cp .env.example .env`
 5. Configura la base de datos en el archivo `.env`
