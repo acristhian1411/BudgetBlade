@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import {handler} from '../svelteUI/build/handler.js'
 import swaggerJSDoc  from 'swagger-jsdoc'
 import SwaggerUI from 'swagger-ui-express'
@@ -37,6 +38,9 @@ const options = {
 const swaggerSpec = swaggerJSDoc(options);
 const app = express()
 const port = process.env.PORT 
+app.use(cors({
+  origin:'*'
+}))
 app.use(express.json())
 app.use('/api',tilltypesroutes)
 app.use('/api',persontypesroutes)
