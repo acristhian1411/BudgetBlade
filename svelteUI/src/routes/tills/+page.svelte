@@ -1,9 +1,18 @@
 <script>
+	// @ts-nocheck
+
 	import { onMount } from 'svelte';
 	import axios from 'axios';
 	import Pagination from '$lib/utilities/pagination.svelte';
+	import DeleteModal from '$lib/utilities/delete_modal.svelte';
+	import Alert from '$lib/utilities/alert.svelte';
 	let data = [];
 	let error = null;
+	let openAlert = false;
+	let openDeleteModal = false;
+	let alertMessage = '';
+	let alertType = '';
+	let id = 0;
 	let orderBy = 'TILL_NAME';
 	let order = 'asc';
 	let total_pages;
@@ -28,6 +37,36 @@
 			});
 	}
 
+	function closeAlert() {
+		openAlert = false;
+	}
+
+	function OpenAlertMessage(event) {
+		openAlert = true;
+		alertType = event.detail.type;
+		alertMessage = event.detail.message;
+	}
+
+	function deleteRecord() {
+		axios.delete(`http://127.0.0.1:3000/api/tills/${id}`).then((res) => {
+			let detail = {
+				detail: {
+					type: 'delete',
+					message: res.data.message
+				}
+			};
+			OpenAlertMessage(detail);
+			closeDeleteModal();
+		});
+	}
+	function closeDeleteModal() {
+		openDeleteModal = false;
+		fetchData();
+	}
+	function OpenDeleteModal(data) {
+		id = data;
+		openDeleteModal = true;
+	}
 	function handleRowsPerPage(event) {
 		items_per_page = event.detail.value;
 		fetchData(current_page, event.detail.value);
@@ -63,6 +102,14 @@
 		>
 	</label>
 </div>
+{#if openAlert}
+	<Alert {alertMessage} {alertType} on:close={closeAlert} />
+{/if}
+{#if openDeleteModal}
+	<dialog id="my_modal_5" class="modal modal-open">
+		<DeleteModal on:close={closeDeleteModal} on:confirm={deleteRecord} />
+	</dialog>
+{/if}
 {#if data}
 	<div class="overflow-x-auto">
 		<table class="table w-full">
@@ -79,7 +126,11 @@
 						<td>{till.id}</td>
 						<td>{till.TILL_NAME}</td>
 						<td><button class="btn btn-warning">Editar</button></td>
-						<td><button class="btn btn-secondary">Eliminar</button></td>
+						<td
+							><button class="btn btn-secondary" on:click={() => OpenDeleteModal(till.id)}
+								>Eliminar</button
+							></td
+						>
 					</tr>
 				{/each}
 			</tbody>
