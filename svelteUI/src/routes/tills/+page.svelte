@@ -6,9 +6,13 @@
 	import Pagination from '$lib/utilities/pagination.svelte';
 	import DeleteModal from '$lib/utilities/delete_modal.svelte';
 	import Alert from '$lib/utilities/alert.svelte';
+	import Form from './form.svelte';
 	let data = [];
 	let error = null;
 	let openAlert = false;
+	let _new = false;
+	let edit = false;
+	let item = null;
 	let openDeleteModal = false;
 	let alertMessage = '';
 	let alertType = '';
@@ -30,7 +34,6 @@
 				current_page = response.data.currentPage;
 				total_items = response.data.totalItems;
 				total_pages = response.data.totalResults;
-				console.log(data);
 			})
 			.catch((err) => {
 				error = err;
@@ -58,6 +61,20 @@
 			OpenAlertMessage(detail);
 			closeDeleteModal();
 		});
+	}
+	function openEditModal(data) {
+		edit = true;
+		item = data;
+		_new = false;
+	}
+	function closeModal() {
+		edit = false;
+		_new = false;
+	}
+	function openNewModal() {
+		edit = false;
+		item = null;
+		_new = true;
 	}
 	function closeDeleteModal() {
 		openDeleteModal = false;
@@ -106,8 +123,18 @@
 	<Alert {alertMessage} {alertType} on:close={closeAlert} />
 {/if}
 {#if openDeleteModal}
-	<dialog id="my_modal_5" class="modal modal-open">
+	<dialog class="modal modal-open">
 		<DeleteModal on:close={closeDeleteModal} on:confirm={deleteRecord} />
+	</dialog>
+{/if}
+{#if _new == true}
+	<dialog class="modal modal-open">
+		<Form {edit} on:message={OpenAlertMessage} on:close={() => closeModal()} />
+	</dialog>
+{/if}
+{#if edit == true}
+	<dialog class="modal modal-open">
+		<Form {edit} {item} on:message={OpenAlertMessage} on:close={() => closeModal()} />
 	</dialog>
 {/if}
 {#if data}
@@ -115,19 +142,21 @@
 		<table class="table w-full">
 			<thead>
 				<tr>
-					<th>ID</th>
-					<th>Descripcion</th>
-					<th><button class="btn btn-primary">Agregar</button></th>
+					<th class="text-lg">ID</th>
+					<th class="text-center text-lg">Descripcion</th>
+					<th><button class="btn btn-primary" on:click={() => (_new = true)}>Agregar</button></th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each data as till (till.id)}
 					<tr class="hover">
 						<td>{till.id}</td>
-						<td>{till.TILL_NAME}</td>
-						<td><button class="btn btn-warning">Editar</button></td>
-						<td
-							><button class="btn btn-secondary" on:click={() => OpenDeleteModal(till.id)}
+						<td class="text-center">{till.TILL_NAME}</td>
+						<td>
+							<button class="btn btn-warning" on:click={() => openEditModal(till)}>Editar</button>
+						</td>
+						<td>
+							<button class="btn btn-secondary" on:click={() => OpenDeleteModal(till.id)}
 								>Eliminar</button
 							></td
 						>
@@ -137,7 +166,6 @@
 		</table>
 		<Pagination
 			{current_page}
-			{total_items}
 			{total_pages}
 			{items_per_page}
 			on:page={handlePage}
