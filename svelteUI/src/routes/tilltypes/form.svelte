@@ -54,9 +54,9 @@
 </script>
 
 {#if edit == true}
-	<h3 class="mb-4 text-center text-2xl">Actualizar Caja</h3>
+	<h3 class="mb-4 text-center text-2xl">Actualizar Tipo de Caja</h3>
 {:else}
-	<h3 class="mb-4 text-center text-2xl">Crear Caja</h3>
+	<h3 class="mb-4 text-center text-2xl">Crear Tipo de Caja</h3>
 {/if}
 <form>
 	<div class="mb-4 flex items-center">
