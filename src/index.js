@@ -11,6 +11,7 @@ import personroutes from './routes/personsroutes.js'
 import tillsdetailsroutes from './routes/tillsdetailsroutes.js'
 import accountplansroutes from './routes/accountplansroutes.js'
 import detailstransferroutes from './routes/detailstransferroutes.js'
+import authroutes from './routes/authroutes.js'
 const swaggerDefinition = {
   openapi: '3.0.0',
   info: {
@@ -42,6 +43,7 @@ app.use(cors({
   origin:'*'
 }))
 app.use(express.json())
+app.use('/api/auth',authroutes)
 app.use('/api',tilltypesroutes)
 app.use('/api',persontypesroutes)
 app.use('/api',tillsroutes)
@@ -61,7 +63,7 @@ app.get('/api', (req, res) => {
     const routes = listEndpoints(app);
     res.json(routes);
   });
-  app.use(handler);
+  // app.use(handler);
   app.listen(port,()=>{
     console.log('server on port', port)
 })
