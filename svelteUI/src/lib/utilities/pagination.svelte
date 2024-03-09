@@ -36,7 +36,7 @@
 <nav aria-label="Page navigation example">
 	<div class="mb-4 flex items-center justify-between">
 		<div class="flex items-center space-x-4">
-			<label for="itemsPerPage" class="text-gray-600">Registros por página:</label>
+			<label for="itemsPerPage">Registros por página:</label>
 			<select
 				id="itemsPerPage"
 				class="rounded-md border border-gray-300 bg-gray-500 px-2 py-1 text-white hover:bg-white hover:text-gray-700"
@@ -65,8 +65,8 @@
 						on:click={() => {
 							goToPage(page);
 						}}
-						class="join-item btn btn-outline"
-						class:active={current_page === page}>{page}</button
+						class="join-item btn btn-outline {current_page === page ? 'btn-active' : ''}"
+						>{page}</button
 					>
 				</li>
 			{/each}

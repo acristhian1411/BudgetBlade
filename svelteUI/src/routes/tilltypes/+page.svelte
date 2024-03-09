@@ -27,6 +27,11 @@
 	let items_per_page = '10';
 	let url = `http://127.0.0.1:3000/api/tillstypes?`;
 
+	function updateData() {
+		fetchData();
+		closeModal();
+	}
+
 	function fetchData(page = current_page, rows = items_per_page) {
 		axios
 			// .get('/api/tillstypes')
@@ -142,7 +147,6 @@
 	</div>
 {/if}
 <h3 class="mb-4 text-center text-2xl">Tipos de Cajas</h3>
-
 <div class="flex justify-center">
 	<label class="input input-bordered flex items-center gap-2">
 		<input type="text" class="grow" placeholder="Search" on:change={search} />
@@ -168,13 +172,13 @@
 	</dialog>
 {/if}
 {#if _new == true}
-	<Modal on:close={() => closeModal()}>
-		<Form {edit} on:message={OpenAlertMessage} on:close={() => closeModal()} />
+	<Modal on:close={() => updateData()}>
+		<Form {edit} on:message={OpenAlertMessage} on:close={() => updateData()} />
 	</Modal>
 {/if}
 {#if edit == true}
-	<Modal on:close={() => closeModal()}>
-		<Form {edit} {item} on:message={OpenAlertMessage} on:close={() => closeModal()} />
+	<Modal on:close={() => updateData()}>
+		<Form {edit} {item} on:message={OpenAlertMessage} on:close={() => updateData()} />
 	</Modal>
 {/if}
 {#if data}

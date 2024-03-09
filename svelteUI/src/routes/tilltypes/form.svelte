@@ -12,6 +12,10 @@
 		dispatch('close');
 	}
 
+	function OpenAlertMessage(event) {
+		dispatch('message', event.detail);
+	}
+
 	onMount(() => {
 		if (edit == true) {
 			id = item.id;

@@ -6,12 +6,17 @@
 	function close() {
 		dispatch('close');
 	}
+	setTimeout(close, 5000);
 </script>
 
 {#if alertType == 'success'}
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-	<div role="alert" class="alert alert-success" on:click={close}>
+	<div
+		role="alert"
+		class="alert alert-success fixed left-1/3 right-1/3 top-12 z-50 w-1/3"
+		on:click={close}
+	>
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			class="h-6 w-6 shrink-0 stroke-current"
@@ -30,7 +35,11 @@
 {#if alertType == 'delete'}
 	<!-- svelte-ignore a11y-click-events-have-key-events -->
 	<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-	<div role="alert" class="alert alert-error" on:click={close}>
+	<div
+		role="alert"
+		class="alert alert-error fixed left-1/3 right-1/3 top-12 z-50 w-1/3"
+		on:click={close}
+	>
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			class="h-6 w-6 shrink-0 stroke-current"
