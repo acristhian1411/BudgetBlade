@@ -6,7 +6,9 @@
 	const dispatch = createEventDispatcher();
 	let id = 0;
 	let person_id = 0;
+	let person_name = '';
 	let t_type_id = 0;
+	let t_type_desc = '';
 	let TILL_NAME = '';
 	let persons = [];
 	let TILL_TYPES = [];
@@ -18,8 +20,9 @@
 	}
 	function getPersons() {
 		axios
-			.get(`http://127.0.0.1:3000/api/persons`)
+			.get(`/api/persons`)
 			.then((res) => {
+				console.log(res.data.results);
 				persons = res.data.results;
 			})
 			.catch((err) => {
@@ -28,7 +31,7 @@
 	}
 	function getTillTypes() {
 		axios
-			.get(`http://127.0.0.1:3000/api/tillstypes`)
+			.get(`/api/tillstypes`)
 			.then((res) => {
 				TILL_TYPES = res.data.results;
 			})
@@ -50,14 +53,16 @@
 	function handlePersons(event) {
 		console.log('event', event.target.value);
 		person_id = event.target.value;
+		person_name = event.target.text;
 	}
 	function handleTillTypes(event) {
-		console.log('event', event.target.value);
+		console.log('event', event.target);
 		t_type_id = event.target.value;
+		t_type_desc = event.target.text;
 	}
 	function handleCreateObject() {
 		axios
-			.post(`http://127.0.0.1:3000/api/tills`, {
+			.post(`/api/tills`, {
 				person_id,
 				t_type_id,
 				TILL_NAME,
@@ -76,7 +81,7 @@
 	}
 	function handleUpdateObject() {
 		axios
-			.put(`http://127.0.0.1:3000/api/tills/${id}`, {
+			.put(`/api/tills/${id}`, {
 				person_id,
 				t_type_id,
 				TILL_NAME,
@@ -139,15 +144,16 @@
 	<div class="mb-4 flex justify-start">
 		<label class="mb-4 flex">
 			<span>Tipo de caja</span>
+
 			<select
 				type="text"
 				placeholder="Tipo de caja"
 				bind:value={t_type_id}
-				on:change={(event) => handleTillTypes(event)}
+				on:change={handleTillTypes}
 				class="input input-bordered mb-6 w-full max-w-xs"
 			>
 				{#each TILL_TYPES as ttype}
-					<option value={ttype.t_type_id}>{ttype.t_type_desc} </option>
+					<option value={ttype.id}>{ttype.t_type_desc}</option>
 				{/each}
 			</select>
 		</label>

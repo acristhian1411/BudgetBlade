@@ -13,27 +13,28 @@
 	let _new = false;
 	let edit = false;
 	let item = null;
+	let search_param = '';
 	let openDeleteModal = false;
 	let alertMessage = '';
 	let alertType = '';
 	let id = 0;
-	let orderBy = 'TILL_NAME';
+	let orderBy = 't_type_desc';
 	let order = 'asc';
 	let total_pages;
 	let total_items;
 	let current_page = 1;
 	let items_per_page = '10';
-	let url = `http://127.0.0.1:3000/api/tills?`;
+	let url = `http://127.0.0.1:3000/api/tillstypes?`;
 
 	function fetchData(page = current_page, rows = items_per_page) {
 		axios
-			// .get('/api/tills')
-			.get(`${url}orderBy=${orderBy}&order=${order}&page=${page}&itemsPerPage=${rows}`)
+			// .get('/api/tillstypes')
+			.get(`${url}orderBy=${orderBy}&order=${order}&page=${page}&pageSize=${rows}`)
 			.then((response) => {
 				data = response.data.results;
 				current_page = response.data.currentPage;
-				total_items = response.data.totalItems;
-				total_pages = response.data.totalResults;
+				total_items = response.data.totalResults;
+				total_pages = response.data.totalPages;
 			})
 			.catch((err) => {
 				error = err;
@@ -51,7 +52,7 @@
 	}
 
 	function deleteRecord() {
-		axios.delete(`http://127.0.0.1:3000/api/tills/${id}`).then((res) => {
+		axios.delete(`http://127.0.0.1:3000/api/tillstypes/${id}`).then((res) => {
 			let detail = {
 				detail: {
 					type: 'delete',
@@ -92,7 +93,15 @@
 		current_page = event.detail.value;
 		fetchData(event.detail.value, items_per_page);
 	}
-
+	function search(event) {
+		search_param = event.target.value;
+		if (search_param == '') {
+			url = `http://127.0.0.1:3000/api/tillstypes?`;
+		} else {
+			url = `http://127.0.0.1:3000/api/searchtillstypes?t_type_desc=${search_param}&`;
+		}
+		fetchData(1, items_per_page);
+	}
 	onMount(async () => {
 		fetchData();
 	});
@@ -101,11 +110,11 @@
 {#if error}
 	<p>{error}</p>
 {/if}
-<h3 class="mb-4 text-center text-2xl">Cajas</h3>
+<h3 class="mb-4 text-center text-2xl">Tipos de Cajas</h3>
 
 <div class="flex justify-center">
 	<label class="input input-bordered flex items-center gap-2">
-		<input type="text" class="grow" placeholder="Search" />
+		<input type="text" class="grow" placeholder="Search" on:change={search} />
 		<svg
 			xmlns="http://www.w3.org/2000/svg"
 			viewBox="0 0 16 16"
@@ -142,21 +151,23 @@
 		<table class="table w-full">
 			<thead>
 				<tr>
+					<th class="text-lg">#</th>
 					<th class="text-lg">ID</th>
 					<th class="text-center text-lg">Descripcion</th>
 					<th><button class="btn btn-primary" on:click={() => (_new = true)}>Agregar</button></th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each data as till (till.id)}
+				{#each data as t_type, i (t_type.id)}
 					<tr class="hover">
-						<td>{till.id}</td>
-						<td class="text-center">{till.TILL_NAME}</td>
+						<td>{i + 1}</td>
+						<td>{t_type.id}</td>
+						<td class="text-center">{t_type.t_type_desc}</td>
 						<td>
-							<button class="btn btn-warning" on:click={() => openEditModal(till)}>Editar</button>
+							<button class="btn btn-warning" on:click={() => openEditModal(t_type)}>Editar</button>
 						</td>
 						<td>
-							<button class="btn btn-secondary" on:click={() => OpenDeleteModal(till.id)}
+							<button class="btn btn-secondary" on:click={() => OpenDeleteModal(t_type.id)}
 								>Eliminar</button
 							></td
 						>
