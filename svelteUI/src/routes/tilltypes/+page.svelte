@@ -186,13 +186,9 @@
 		<table class="table w-full">
 			<thead>
 				<tr>
-					<th class="text-lg">#</th>
 					<th class="text-center text-lg">
 						<div class="flex items-center">
 							ID
-							<!-- svelte-ignore a11y-click-events-have-key-events -->
-							<!-- svelte-ignore a11y-no-static-element-interactions -->
-							<!-- svelte-ignore a11y-missing-attribute -->
 							<button on:click={() => sortData('id')}
 								><svg
 									class="ms-1.5 h-3 w-3"
@@ -211,9 +207,6 @@
 					<th class="text-center text-lg">
 						<div class="flex items-center justify-center">
 							Descripcion
-							<!-- svelte-ignore a11y-click-events-have-key-events -->
-							<!-- svelte-ignore a11y-no-static-element-interactions -->
-							<!-- svelte-ignore a11y-missing-attribute -->
 							<button on:click={() => sortData('t_type_desc')}
 								><svg
 									class="ms-1.5 h-3 w-3"
@@ -235,7 +228,6 @@
 			<tbody>
 				{#each data as t_type, i (t_type.id)}
 					<tr class="hover">
-						<td>{i + 1}</td>
 						<td>{t_type.id}</td>
 						<td class="text-center">{t_type.t_type_desc}</td>
 						<td>
