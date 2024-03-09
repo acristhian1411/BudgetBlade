@@ -30,7 +30,7 @@
 	function fetchData(page = current_page, rows = items_per_page) {
 		axios
 			// .get('/api/tillstypes')
-			.get(`${url}orderBy=${orderBy}&order=${order}&page=${page}&pageSize=${rows}`)
+			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`)
 			.then((response) => {
 				data = response.data.results;
 				current_page = response.data.currentPage;
@@ -81,6 +81,15 @@
 	function closeDeleteModal() {
 		openDeleteModal = false;
 		fetchData();
+	}
+	function sortData(param) {
+		orderBy = param;
+		if (order == 'asc') {
+			order = 'desc';
+		} else {
+			order = 'asc';
+		}
+		fetchData(current_page, items_per_page);
 	}
 	function OpenDeleteModal(data) {
 		id = data;
@@ -153,8 +162,48 @@
 			<thead>
 				<tr>
 					<th class="text-lg">#</th>
-					<th class="text-lg">ID</th>
-					<th class="text-center text-lg">Descripcion</th>
+					<th class="text-center text-lg">
+						<div class="flex items-center">
+							ID
+							<!-- svelte-ignore a11y-click-events-have-key-events -->
+							<!-- svelte-ignore a11y-no-static-element-interactions -->
+							<!-- svelte-ignore a11y-missing-attribute -->
+							<button on:click={() => sortData('id')}
+								><svg
+									class="ms-1.5 h-3 w-3"
+									aria-hidden="true"
+									xmlns="http://www.w3.org/2000/svg"
+									fill="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+									/>
+								</svg></button
+							>
+						</div>
+					</th>
+					<th class="text-center text-lg">
+						<div class="flex items-center justify-center">
+							Descripcion
+							<!-- svelte-ignore a11y-click-events-have-key-events -->
+							<!-- svelte-ignore a11y-no-static-element-interactions -->
+							<!-- svelte-ignore a11y-missing-attribute -->
+							<button on:click={() => sortData('t_type_desc')}
+								><svg
+									class="ms-1.5 h-3 w-3"
+									aria-hidden="true"
+									xmlns="http://www.w3.org/2000/svg"
+									fill="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+									/>
+								</svg></button
+							>
+						</div>
+					</th>
 					<th><button class="btn btn-primary" on:click={() => (_new = true)}>Agregar</button></th>
 				</tr>
 			</thead>
