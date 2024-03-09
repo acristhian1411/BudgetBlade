@@ -41,17 +41,23 @@ const getAllTills = async(req,res)=>{
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
     }
 }
-const createTills = async (req,res)=>{
-    const type = await prisma.tills.create({
-        data:{
-            TILL_NAME:req.body.TILL_NAME,
-            TILL_ACCOUNT_NUMBER:req.body.TILL_ACCOUNT_NUMBER,
-            person_id: req.body.person_id,
-            t_type_id: req.body.t_type_id
-        }
-    })
-    res.json(type)
+const createTills = async (req, res) => {
+    try {
+        const type = await prisma.tills.create({
+            data: {
+                TILL_NAME: req.body.TILL_NAME,
+                TILL_ACCOUNT_NUMBER: req.body.TILL_ACCOUNT_NUMBER,
+                person_id: req.body.person_id,
+                t_type_id: req.body.t_type_id
+            }
+        });
+        res.json(type);
+    } catch (error) {
+        console.error("Error al crear el registro de tills:", error);
+        res.status(500).json({ error: error });
+    }
 }
+
 
 const showTills = async (req,res)=>{
     const type = await prisma.tills.findFirst({
