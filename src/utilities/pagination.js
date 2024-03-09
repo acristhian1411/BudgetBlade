@@ -9,9 +9,12 @@ const paginateAndSortResults = async (consult,model, page = 1, pageSize = 10, so
     take: pageSize,
     skip,
   });
-  const totalCount = await paginatedData.length;
+  const totalCount = await model.count({
+    ...consult,
+  });
 
   const totalPages = Math.ceil(totalCount / pageSize);
+
 
   return {
     results: paginatedData,
@@ -22,3 +25,5 @@ const paginateAndSortResults = async (consult,model, page = 1, pageSize = 10, so
 };
 
 export default paginateAndSortResults;
+
+
