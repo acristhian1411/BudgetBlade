@@ -107,7 +107,8 @@ const searchTillsTypes = async (req, res) => {
         const tillsTypes = {
         where: {
             t_type_desc:{
-            contains: req.query.t_type_desc
+            contains: req.query.t_type_desc,
+            mode: 'insensitive'
             },
             deletedAt:null
         }
