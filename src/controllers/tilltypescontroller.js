@@ -40,7 +40,7 @@ const createTillsType = async (req,res)=>{
             t_type_desc:req.body.t_type_desc
         }
     })
-    res.status(201).json(type)
+    res.status(201).json({message:'Registro creado correctamente',data:type})
 }
 
 /**
@@ -75,7 +75,7 @@ const updateTillsType = async (req,res)=>{
             t_type_desc:req.body.t_type_desc
         }
     })
-    res.status(200).json(type)
+    res.status(200).json({message:'Registro actualizado correctamente.',data:type})
 }
 
 /**
