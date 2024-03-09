@@ -6,6 +6,7 @@
 	import Pagination from '$lib/utilities/pagination.svelte';
 	import DeleteModal from '$lib/utilities/delete_modal.svelte';
 	import Alert from '$lib/utilities/alert.svelte';
+	import Modal from '$lib/utilities/modal.svelte';
 	import Form from './form.svelte';
 	let data = [];
 	let error = null;
@@ -137,14 +138,14 @@
 	</dialog>
 {/if}
 {#if _new == true}
-	<dialog class="modal modal-open">
+	<Modal on:close={() => closeModal()}>
 		<Form {edit} on:message={OpenAlertMessage} on:close={() => closeModal()} />
-	</dialog>
+	</Modal>
 {/if}
 {#if edit == true}
-	<dialog class="modal modal-open">
+	<Modal on:close={() => closeModal()}>
 		<Form {edit} {item} on:message={OpenAlertMessage} on:close={() => closeModal()} />
-	</dialog>
+	</Modal>
 {/if}
 {#if data}
 	<div class="overflow-x-auto">
