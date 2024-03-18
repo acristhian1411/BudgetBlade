@@ -22,7 +22,7 @@
 3. Instala las dependencias: `npm install`
 4. Copia el archivo de configuración: `cp .env.example .env`
 5. Configura la base de datos en el archivo `.env`
-6. Ejecuta las migraciones: `npx sequelize-cli db:migrate`
+6. Ejecuta las migraciones: `npx prisma migrate dev`
 7. Lanza la aplicación: `npm start` o `npm run dev`
 8. Ve a la documentación de la api en: [http://localhost:3000/docs]
 
