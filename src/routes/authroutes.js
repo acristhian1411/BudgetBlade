@@ -3,9 +3,13 @@ import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { generateTokens } from '../utilities/jwt.js';
 import bcrypt from 'bcrypt';
-import { addRefreshTokenToWhitelist } from '../controllers/authcontroller.js';
+import { addRefreshTokenToWhitelist,
+  findRefreshTokenById,
+  deleteRefreshToken,
+  revokeTokens } from '../controllers/authcontroller.js';
 import { findUserByEmail, createUserByEmailAndPassword } from '../controllers/usercontroller.js';
-
+import hashToken from '../utilities/hashToken.js';
+// const { hashToken } = require('../../utils/hashToken');
 const router = express.Router();
 
 router.post('/register', async (req, res, next) => {
@@ -66,6 +70,59 @@ router.post('/login', async (req, res, next) => {
         accessToken,
         refreshToken
       });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  router.post('/refreshToken', async (req, res, next) => {
+    try {
+      const { refreshToken } = req.body;
+      if (!refreshToken) {
+        res.status(400);
+        throw new Error('Missing refresh token.');
+      }
+      const payload = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+      const savedRefreshToken = await findRefreshTokenById(payload.jti);
+  
+      if (!savedRefreshToken || savedRefreshToken.revoked === true) {
+        res.status(401);
+        throw new Error('Unauthorized');
+      }
+  
+      const hashedToken = hashToken(refreshToken);
+      if (hashedToken !== savedRefreshToken.hashedToken) {
+        res.status(401);
+        throw new Error('Unauthorized');
+      }
+  
+      const user = await findUserById(payload.userId);
+      if (!user) {
+        res.status(401);
+        throw new Error('Unauthorized');
+      }
+  
+      await deleteRefreshToken(savedRefreshToken.id);
+      const jti = uuidv4();
+      const { accessToken, refreshToken: newRefreshToken } = generateTokens(user, jti);
+      await addRefreshTokenToWhitelist({ jti, refreshToken: newRefreshToken, userId: user.id });
+  
+      res.json({
+        accessToken,
+        refreshToken: newRefreshToken
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+  
+  // This endpoint is only for demo purpose.
+  // Move this logic where you need to revoke the tokens( for ex, on password reset)
+  router.post('/revokeRefreshTokens', async (req, res, next) => {
+    try {
+      const { userId } = req.body;
+      await revokeTokens(userId);
+      res.json({ message: `Tokens revoked for user with id #${userId}` });
     } catch (err) {
       next(err);
     }

@@ -1,6 +1,6 @@
 <script>
 	// @ts-nocheck
-
+	import { getToken } from '../../services/auth';
 	import { onMount } from 'svelte';
 	import axios from 'axios';
 	import Pagination from '$lib/utilities/pagination.svelte';
@@ -32,10 +32,15 @@
 		closeModal();
 	}
 
-	function fetchData(page = current_page, rows = items_per_page) {
+	async function fetchData(page = current_page, rows = items_per_page) {
+		const token = await getToken();
 		axios
 			// .get('/api/tillstypes')
-			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`)
+			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`, {
+				headers: {
+					Authorization: `Bearer ${token}`
+				}
+			})
 			.then((response) => {
 				data = response.data.results;
 				current_page = response.data.currentPage;
