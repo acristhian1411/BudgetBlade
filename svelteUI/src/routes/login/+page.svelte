@@ -1,21 +1,13 @@
 <script>
-	import { login } from '../../services/auth';
 	let email = '';
 	let password = '';
 	let error;
-	async function handleLogin() {
-		try {
-			await login();
-		} catch (err) {
-			error = err;
-		}
-	}
 </script>
 
 {#if error}
 	<p>{error}</p>
 {/if}
-<form on:submit|preventDefault={handleLogin} class="mx-auto max-w-md">
+<form class="mx-auto max-w-md">
 	<div class="mb-4">
 		<label for="email" class="block text-sm font-medium text-gray-700">Email</label>
 		<input
