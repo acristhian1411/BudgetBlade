@@ -7,6 +7,7 @@
 	import Alert from '$lib/utilities/alert.svelte';
 	import Modal from '$lib/utilities/modal.svelte';
 	import Form from './form.svelte';
+	import { PUBLIC_APP_URL } from '$env/static/public';
 	let data = [];
 	let error = null;
 	let openAlert = false;
@@ -24,7 +25,7 @@
 	let total_items;
 	let current_page = 1;
 	let items_per_page = '10';
-	let url = `http://127.0.0.1:3000/api/tillstypes?`;
+	let url = `${PUBLIC_APP_URL}/api/tillstypes?`;
 
 	function updateData() {
 		fetchData();
@@ -57,7 +58,7 @@
 	}
 
 	function deleteRecord() {
-		axios.delete(`http://127.0.0.1:3000/api/tillstypes/${id}`).then((res) => {
+		axios.delete(`${PUBLIC_APP_URL}/api/tillstypes/${id}`).then((res) => {
 			let detail = {
 				detail: {
 					type: 'delete',
@@ -110,13 +111,14 @@
 	function search(event) {
 		search_param = event.target.value;
 		if (search_param == '') {
-			url = `http://127.0.0.1:3000/api/tillstypes?`;
+			url = `${PUBLIC_APP_URL}/api/tillstypes?`;
 		} else {
-			url = `http://127.0.0.1:3000/api/searchtillstypes?t_type_desc=${search_param}&`;
+			url = `${PUBLIC_APP_URL}/api/searchtillstypes?t_type_desc=${search_param}&`;
 		}
 		fetchData(1, items_per_page);
 	}
 	onMount(async () => {
+		console.log('enviromentes', PUBLIC_APP_URL);
 		fetchData();
 	});
 </script>
