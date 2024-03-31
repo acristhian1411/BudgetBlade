@@ -28,14 +28,14 @@
 {#if error}
 	<p>{error}</p>
 {/if}
-<div class="breadcrumbs text-sm">
+<div class="breadcrumbs text-md mb-4">
 	<ul>
 		<li><a href="/">Inicio</a></li>
 		<li><a href="/tilltypes">Tipos de caja</a></li>
 	</ul>
 </div>
 {#if tilltype}
-	<h1 class="text-2xl font-bold">Descripcion:</h1>
+	<h1 class="text-xl font-bold">Descripcion:</h1>
 	<p class="text-1xl">{tilltype.t_type_desc}</p>
 {/if}
 <!-- <div>{@html data.content}</div> -->

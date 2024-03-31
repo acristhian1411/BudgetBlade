@@ -4,7 +4,7 @@
 	import { onMount } from 'svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
 	let error;
-	let tilltype;
+	let accountplan;
 
 	export let data;
 
@@ -12,7 +12,7 @@
 		axios
 			.get(`${PUBLIC_APP_URL}/api/accountplans/${data.id}`)
 			.then((response) => {
-				tilltype = response.data;
+				accountplan = response.data;
 			})
 			.catch((err) => {
 				error = err;
@@ -29,14 +29,16 @@
 {#if error}
 	<p>{error}</p>
 {/if}
-<div class="breadcrumbs text-sm">
+<div class="breadcrumbs text-md mb-4">
 	<ul>
 		<li><a href="/">Inicio</a></li>
 		<li><a href="/accountplans">Planes de cuenta</a></li>
 	</ul>
 </div>
-{#if tilltype}
-	<h1 class="text-2xl font-bold">Descripcion:</h1>
-	<p class="text-1xl">{tilltype.account_desc}</p>
+{#if accountplan}
+	<h1 class="text-xl font-bold">Descripción:</h1>
+	<p class="text-1xl mb-4">{accountplan.account_desc}</p>
+	<h1 class="text-xl font-bold">Código:</h1>
+	<p class="text-1xl mb-4">{accountplan.account_code}</p>
 {/if}
 <!-- <div>{@html data.content}</div> -->
