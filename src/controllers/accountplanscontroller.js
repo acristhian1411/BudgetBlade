@@ -20,7 +20,7 @@ const getAllAccountPlans = async (req, res) => {
             where: { deletedAt: null }, 
         });
         const paginatedData = await paginateAndSortResults(consult, prisma.accountPlan, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
-        res.json(paginatedData);
+        res.status(200).json(paginatedData);;
     } catch (error) {
         console.log('para mostrar error',error)
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
@@ -42,7 +42,7 @@ const createAccountPlans = async (req,res)=>{
             account_pid:req.body.account_pid
         }
     })
-    res.json(type)
+    res.status(201).json({message:'Registro creado correctamente',data:type})
 }
 
 /**
@@ -58,7 +58,7 @@ const showAccountPlans = async (req,res)=>{
             deletedAt:null
         }
     })
-    res.json(type)
+    res.status(200).json(type)
 }
 
 
@@ -75,7 +75,7 @@ const updateAccountPlans = async (req,res)=>{
         },
         data: req.body
     })
-    res.json(type)
+    res.status(200).json({message:'Registro actualizado correctamente.',data:type})
 }
 
 /**
@@ -107,7 +107,8 @@ const searchAccountPlans = async (req, res) => {
         const tillsTypes = {
         where: {
             account_desc:{
-            contains: req.query.account_desc
+            contains: req.query.account_desc,
+            mode: 'insensitive'
             },
             deletedAt:null
         }
