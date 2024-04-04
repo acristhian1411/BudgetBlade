@@ -8,6 +8,7 @@
 	import Modal from '$lib/utilities/modal.svelte';
 	import Form from './form.svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
+
 	let data = [];
 	let error = null;
 	let openAlert = false;
@@ -19,13 +20,13 @@
 	let alertMessage = '';
 	let alertType = '';
 	let id = 0;
-	let orderBy = 't_type_desc';
+	let orderBy = 'account_desc';
 	let order = 'asc';
 	let total_pages;
 	let total_items;
 	let current_page = 1;
 	let items_per_page = '10';
-	let url = `${PUBLIC_APP_URL}/api/tillstypes?`;
+	let url = `${PUBLIC_APP_URL}/api/accountplans?`;
 
 	function updateData() {
 		fetchData();
@@ -34,7 +35,7 @@
 
 	async function fetchData(page = current_page, rows = items_per_page) {
 		axios
-			// .get('/api/tillstypes')
+			// .get('/api/accountplans')
 			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`)
 			.then((response) => {
 				data = response.data.results;
@@ -58,7 +59,7 @@
 	}
 
 	function deleteRecord() {
-		axios.delete(`${PUBLIC_APP_URL}/api/tillstypes/${id}`).then((res) => {
+		axios.delete(`${PUBLIC_APP_URL}/api/accountplans/${id}`).then((res) => {
 			let detail = {
 				detail: {
 					type: 'delete',
@@ -111,9 +112,9 @@
 	function search(event) {
 		search_param = event.target.value;
 		if (search_param == '') {
-			url = `${PUBLIC_APP_URL}/api/tillstypes?`;
+			url = `${PUBLIC_APP_URL}/api/accountplans?`;
 		} else {
-			url = `${PUBLIC_APP_URL}/api/searchtillstypes?t_type_desc=${search_param}&`;
+			url = `${PUBLIC_APP_URL}/api/searchaccountplans?account_desc=${search_param}&`;
 		}
 		fetchData(1, items_per_page);
 	}
@@ -147,7 +148,7 @@
 		</span>
 	</div>
 {/if}
-<h3 class="mb-4 text-center text-2xl">Tipos de Cajas</h3>
+<h3 class="mb-4 text-center text-2xl">Planes de Cuenta</h3>
 <div class="flex justify-center">
 	<label class="input input-bordered flex items-center gap-2">
 		<input type="text" class="grow" placeholder="Search" on:change={search} />
@@ -207,8 +208,26 @@
 					</th>
 					<th class="text-center text-lg">
 						<div class="flex items-center justify-center">
-							Descripcion
-							<button on:click={() => sortData('t_type_desc')}
+							Descripción
+							<button on:click={() => sortData('account_desc')}
+								><svg
+									class="ms-1.5 h-3 w-3"
+									aria-hidden="true"
+									xmlns="http://www.w3.org/2000/svg"
+									fill="currentColor"
+									viewBox="0 0 24 24"
+								>
+									<path
+										d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
+									/>
+								</svg></button
+							>
+						</div>
+					</th>
+					<th class="text-center text-lg">
+						<div class="flex items-center justify-center">
+							Código
+							<button on:click={() => sortData('account_code')}
 								><svg
 									class="ms-1.5 h-3 w-3"
 									aria-hidden="true"
@@ -230,9 +249,10 @@
 				{#each data as t_type, i (t_type.id)}
 					<tr class="hover">
 						<td>{t_type.id}</td>
-						<td class="text-center">{t_type.t_type_desc}</td>
+						<td class="text-center">{t_type.account_desc}</td>
+						<td class="text-center">{t_type.account_code}</td>
 						<td>
-							<a href="/tilltypes/{t_type.id}" class="btn btn-info">Mostrar</a>
+							<a href="/accountplans/{t_type.id}" class="btn btn-info">Mostrar</a>
 						</td>
 						<td>
 							<button class="btn btn-warning" on:click={() => openEditModal(t_type)}>Editar</button>

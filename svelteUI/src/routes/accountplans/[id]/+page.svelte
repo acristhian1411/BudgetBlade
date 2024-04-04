@@ -2,16 +2,17 @@
 	/** @type {import('./$types').PageData} */
 	import axios from 'axios';
 	import { onMount } from 'svelte';
+	import { PUBLIC_APP_URL } from '$env/static/public';
 	let error;
-	let tilltype;
+	let accountplan;
 
 	export let data;
 
 	async function fetchData() {
 		axios
-			.get(`http://127.0.0.1:3000/api/tillstypes/${data.id}`)
+			.get(`${PUBLIC_APP_URL}/api/accountplans/${data.id}`)
 			.then((response) => {
-				tilltype = response.data;
+				accountplan = response.data;
 			})
 			.catch((err) => {
 				error = err;
@@ -31,11 +32,13 @@
 <div class="breadcrumbs text-md mb-4">
 	<ul>
 		<li><a href="/">Inicio</a></li>
-		<li><a href="/tilltypes">Tipos de caja</a></li>
+		<li><a href="/accountplans">Planes de cuenta</a></li>
 	</ul>
 </div>
-{#if tilltype}
-	<h1 class="text-xl font-bold">Descripcion:</h1>
-	<p class="text-1xl">{tilltype.t_type_desc}</p>
+{#if accountplan}
+	<h1 class="text-xl font-bold">Descripción:</h1>
+	<p class="text-1xl mb-4">{accountplan.account_desc}</p>
+	<h1 class="text-xl font-bold">Código:</h1>
+	<p class="text-1xl mb-4">{accountplan.account_code}</p>
 {/if}
 <!-- <div>{@html data.content}</div> -->

@@ -1,37 +1,55 @@
 <script>
-	let email = '';
+	import { auth } from '../../stores/auth';
+	import { onMount } from 'svelte';
+	import axios from 'axios';
+
+	let username = '';
 	let password = '';
-	let error;
+
+	onMount(() => {
+		console.log('login', auth);
+		auth.update((state) => ({ ...state, isLoading: false, error: null }));
+	});
+	/**
+	 * @param {string} username
+	 * @param {string} password
+	 */
+	async function handleLogin(username, password) {
+		console.log('login', username + password);
+		// try {
+		//change this petition to axios
+
+		//
+		const response = await axios.post('http://localhost:3000/api/auth/login', {
+			username,
+			password
+		});
+
+		if (!response) {
+			throw new Error('Login failed');
+		}
+
+		const data = await response.data;
+
+		auth.update((state) => ({
+			...state,
+			user: data.user,
+			accessToken: data.accessToken,
+			refreshToken: data.refreshToken,
+			isLoading: false,
+			error: null
+		}));
+		// } catch (error) {
+		// 	auth.update((state) => ({ ...state, isLoading: false, error: error.message }));
+		// }
+	}
 </script>
 
-{#if error}
-	<p>{error}</p>
-{/if}
-<form class="mx-auto max-w-md">
-	<div class="mb-4">
-		<label for="email" class="block text-sm font-medium text-gray-700">Email</label>
-		<input
-			type="email"
-			id="email"
-			bind:value={email}
-			class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-			required
-		/>
-	</div>
-	<div class="mb-4">
-		<label for="password" class="block text-sm font-medium text-gray-700">Contraseña</label>
-		<input
-			type="password"
-			id="password"
-			bind:value={password}
-			class="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm"
-			required
-		/>
-	</div>
-	<button
-		type="submit"
-		class="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-	>
-		Iniciar sesión
-	</button>
+<form>
+	<input type="text" bind:value={username} placeholder="Username" />
+	<input type="password" bind:value={password} placeholder="Password" />
+	<button type="submit" on:click={() => handleLogin(username, password)}>Login</button>
+	{#if auth.error}
+		<p style="color: red">{auth.error}</p>
+	{/if}
 </form>
