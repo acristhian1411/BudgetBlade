@@ -36,9 +36,16 @@
 	</ul>
 </div>
 {#if accountplan}
-	<h1 class="text-xl font-bold">Descripción:</h1>
-	<p class="text-1xl mb-4">{accountplan.account_desc}</p>
-	<h1 class="text-xl font-bold">Código:</h1>
-	<p class="text-1xl mb-4">{accountplan.account_code}</p>
+	<section>
+		<div class="mb-4 flex content-center items-start justify-start gap-2">
+			<h1 class="text-xl font-bold">Descripción:</h1>
+			<p class="text-1xl mb-4 flex self-center">{accountplan.account_desc}</p>
+		</div>
+		<div class="mb-4 flex items-start gap-2">
+			<h1 class="text-xl font-bold">Código:</h1>
+			<p class="text-1xl mb-4">{accountplan.account_code}</p>
+		</div>
+	</section>
 {/if}
+
 <!-- <div>{@html data.content}</div> -->

@@ -1,5 +1,5 @@
 <script>
-	import { auth } from '../../stores/auth';
+	// import { auth } from '../../stores/auth';
 	import { onMount } from 'svelte';
 	import axios from 'axios';
 
@@ -7,8 +7,8 @@
 	let password = '';
 
 	onMount(() => {
-		console.log('login', auth);
-		auth.update((state) => ({ ...state, isLoading: false, error: null }));
+		// console.log('login', auth);
+		// auth.update((state) => ({ ...state, isLoading: false, error: null }));
 	});
 	/**
 	 * @param {string} username
@@ -31,14 +31,14 @@
 
 		const data = await response.data;
 
-		auth.update((state) => ({
-			...state,
-			user: data.user,
-			accessToken: data.accessToken,
-			refreshToken: data.refreshToken,
-			isLoading: false,
-			error: null
-		}));
+		// auth.update((state) => ({
+		// 	...state,
+		// 	user: data.user,
+		// 	accessToken: data.accessToken,
+		// 	refreshToken: data.refreshToken,
+		// 	isLoading: false,
+		// 	error: null
+		// }));
 		// } catch (error) {
 		// 	auth.update((state) => ({ ...state, isLoading: false, error: error.message }));
 		// }
@@ -49,7 +49,4 @@
 	<input type="text" bind:value={username} placeholder="Username" />
 	<input type="password" bind:value={password} placeholder="Password" />
 	<button type="submit" on:click={() => handleLogin(username, password)}>Login</button>
-	{#if auth.error}
-		<p style="color: red">{auth.error}</p>
-	{/if}
 </form>
