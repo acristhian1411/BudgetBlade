@@ -39,7 +39,8 @@ const options = {
 }
 const swaggerSpec = swaggerJSDoc(options);
 const app = express()
-const port = process.env.PORT 
+// Suggested code may be subject to a license. Learn more: ~LicenseLog:3005161814.
+const port = process.argv[3] || process.env.PORT 
 app.use(cors({
   origin:'*'
 }))
