@@ -10,6 +10,7 @@
 	let account_desc = '';
 	let account_code = '';
 	let account_pid = 0;
+	let account_parents = [];
 	export let edit;
 	export let item;
 	function close() {
@@ -20,7 +21,14 @@
 		dispatch('message', event.detail);
 	}
 
+	async function fetchParents() {
+		axios.get(`${PUBLIC_APP_URL}/api/accountplans`).then((res) => {
+			account_parents = res.data.results;
+		});
+	}
+
 	onMount(() => {
+		fetchParents();
 		if (edit == true) {
 			id = item.id;
 			account_desc = item.account_desc;
@@ -28,8 +36,7 @@
 			account_pid = item.account_pid;
 		}
 	});
-	// http://127.0.0.1:5173/tilltypes
-	function handleCreateObject() {
+	async function handleCreateObject() {
 		axios
 			.post(`${PUBLIC_APP_URL}/api/accountplans`, {
 				account_desc
@@ -48,7 +55,9 @@
 	function handleUpdateObject() {
 		axios
 			.put(`${PUBLIC_APP_URL}/api/accountplans/${id}`, {
-				account_desc
+				account_desc,
+				account_code,
+				account_pid
 			})
 			.then((res) => {
 				let detail = {
@@ -70,12 +79,20 @@
 {/if}
 <form>
 	<div class="mb-4 flex items-center">
-		<span class="mr-2">Descripción</span>
+		<label for="account_desc" class="mr-2">Descripción</label>
 		<input type="text" bind:value={account_desc} class="input input-bordered w-full max-w-xs" />
 	</div>
 	<div class="mb-4 flex items-center">
-		<span class="mr-2">Codigo</span>
+		<label for="account_code" class="mr-2">Codigo</label>
 		<input type="text" bind:value={account_code} class="input input-bordered w-full max-w-xs" />
+	</div>
+	<div class="mb-4 flex items-center">
+		<label for="account_pid" class="mr-2">Pertenece a: </label>
+		<select id="account_pid" class="select select-bordered w-full max-w-xs">
+			{#each account_parents as account_parent}
+				<option value={account_parent.id}>{account_parent.account_desc}</option>
+			{/each}
+		</select>
 	</div>
 
 	<button
