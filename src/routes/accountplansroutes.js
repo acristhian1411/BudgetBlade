@@ -65,13 +65,25 @@ router.get('/findAccountplansByCode', findByCode);
  *     tags: [AccountPlans]
  *     responses:
  *       200:
- *         description: The list of the accountplans
+ *         description: The list of the AccountPlans
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/AccountPlans'
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AccountPlans'
+ *                 currentPage:
+ *                   type: integer
+ *                   description: Current page number
+ *                 totalPages:
+ *                   type: integer
+ *                   description: Total number of pages
+ *                 totalResults:
+ *                   type: integer
+ *                   description: Total number of results
  *   post:
  *     summary: Create a new accountplan
  *     tags: [AccountPlans]
@@ -125,11 +137,25 @@ router.get('/findAccountplansByCode', findByCode);
  *         example: 3
  *     responses:
  *       200:
- *         description: The accountplan response by id
- *         contens:
+ *         description: The list of the AccountPlans filtered by code and optionaly by description
+ *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AccountPlans'
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AccountPlans'
+ *                 currentPage:
+ *                   type: integer
+ *                   description: Current page number
+ *                 totalPages:
+ *                   type: integer
+ *                   description: Total number of pages
+ *                 totalResults:
+ *                   type: integer
+ *                   description: Total number of results
  *       404:
  *         description: The accountplan was not found
  * /api/searchaccountplans:
@@ -145,11 +171,25 @@ router.get('/findAccountplansByCode', findByCode);
  *         description: The search value
  *     responses:
  *       200:
- *         description: The accountplan response by id
- *         contens:
+ *         description: The list of the AccountPlans filtered by description
+ *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AccountPlans'
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/AccountPlans'
+ *                 currentPage:
+ *                   type: integer
+ *                   description: Current page number
+ *                 totalPages:
+ *                   type: integer
+ *                   description: Total number of pages
+ *                 totalResults:
+ *                   type: integer
+ *                   description: Total number of results
  *       404:
  *         description: The accountplan was not found
  * /api/accountplans/{id}:
