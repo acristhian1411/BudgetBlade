@@ -57,9 +57,21 @@ router.get('/searchtillstypes', searchTillsTypes);
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/TillsTypes'
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TillsTypes'
+ *                 currentPage:
+ *                   type: integer
+ *                   description: Current page number
+ *                 totalPages:
+ *                   type: integer
+ *                   description: Total number of pages
+ *                 totalResults:
+ *                   type: integer
+ *                   description: Total number of results
  *   post:
  *     summary: Create a new tillstype
  *     tags: [TillsTypes]
@@ -91,11 +103,25 @@ router.get('/searchtillstypes', searchTillsTypes);
  *         description: The search value
  *     responses:
  *       200:
- *         description: The tillstype response by id
- *         contens:
+ *         description: The list of the tillstypes
+ *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/TillsTypes'
+ *               type: object
+ *               properties:
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/TillsTypes'
+ *                 currentPage:
+ *                   type: integer
+ *                   description: Current page number
+ *                 totalPages:
+ *                   type: integer
+ *                   description: Total number of pages
+ *                 totalResults:
+ *                   type: integer
+ *                   description: Total number of results
  *       404:
  *         description: The tillstype was not found
  * /api/tillstypes/{id}:
