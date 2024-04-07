@@ -35,13 +35,13 @@ router.get('/findAccountplansByCode', findByCode);
  *           description: The auto-generated id of the accountplan
  *         account_pid:
  *           type: integer
- *           description: The title of your accountplan
+ *           description: The id of the account plan to which it belongs
  *         account_desc:
  *           type: string
- *           description: The title of your accountplan
+ *           description: The description of your accountplan
  *         account_code:
  *           type: string
- *           description: The title of your accountplan
+ *           description: The code of your accountplan
  *         createdAt:
  *           type: string
  *           format: date
@@ -50,7 +50,7 @@ router.get('/findAccountplansByCode', findByCode);
  *         id: 22
  *         account_pid: 1
  *         account_desc: Pasivo
- *         account_code: 1.2.2
+ *         account_code: 1.0.0
  *         createdAt: 2020-03-10T04:05:06.157Z
  */
 

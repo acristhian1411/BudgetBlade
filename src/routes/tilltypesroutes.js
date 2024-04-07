@@ -71,7 +71,7 @@ router.get('/searchtillstypes', searchTillsTypes);
  *             $ref: '#/components/schemas/TillsTypes'
  *     responses:
  *       200:
- *         description: The csreated tillstype.
+ *         description: The created tillstype.
  *         content:
  *           application/json:
  *             schema:
