@@ -5,7 +5,8 @@ import {
   updateAccountPlans,
   deleteAccountPlans,
   showAccountPlans,
-  searchAccountPlans
+  searchAccountPlans,
+  findByCode
 } from '../controllers/accountplanscontroller.js';
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.put('/accountplans/:id', updateAccountPlans);
 router.delete('/accountplans/:id', deleteAccountPlans);
 router.get('/accountplans/:id', showAccountPlans);
 router.get('/searchaccountplans', searchAccountPlans);
+router.get('/findAccountplansByCode', findByCode);
 
 /**
  * @swagger

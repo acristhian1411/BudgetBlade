@@ -22,10 +22,9 @@ const getAllAccountPlans = async (req, res) => {
         const paginatedData = await paginateAndSortResults(consult, prisma.accountPlan, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
         res.status(200).json(paginatedData);;
     } catch (error) {
-        console.log('para mostrar error',error)
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
     }
-  };
+};
 
 
 /**
@@ -115,12 +114,100 @@ const searchAccountPlans = async (req, res) => {
         }
         const paginatedData = await paginateAndSortResults(tillsTypes,prisma.accountPlan, Number(page), Number(pageSize),sortBy, sortOrder);
 
-        // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
-        res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });
+        res.status(500).json({ error: 'No se pudieron obtener registros.' });
     }
   };
+
+const findByCode = async (req, res) => {
+    try {
+        const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;  
+        var dato;
+        if (req.query.desc) {
+            if (req.query.p1 && req.query.p2 && req.query.p3) {
+                if (req.query.p1 === '0' && req.query.p2 === '0' && req.query.p3 === '0') {
+                    dato = {
+                    where: {
+                        account_pid: 0 ,
+                        account_desc: { contains: req.query.desc, mode: 'insensitive' } ,
+                        deletedAt:null
+                    },
+                    };
+                } else if (req.query.p1 !== '0' && req.query.p2 !== '0' && req.query.p3 !== '0') {
+                    dato = {
+                    where: {
+                        account_code: { equals: req.query.p1 + '.' + req.query.p2 + '.' + req.query.p3 + '.0' } ,
+                        account_desc: { contains: req.query.desc, mode: 'insensitive' },
+                        deletedAt:null
+                    },
+                    };
+                }
+            }else{
+                let qy = {}
+                if(req.query.p3){
+                    qy= {
+                        account_code: {  contains: req.query.p1 + '.' + req.query.p2 + '.' + req.query.p3, } ,
+                    }
+                }else if( req.query.p1 && req.query.p2 && !req.query.p3 ){
+                    qy= {
+                        account_code: { contains: req.query.p1 + '.' + req.query.p2  } ,
+                    }
+                }else{
+                    qy= {
+                        account_code: { contains: req.query.p1 } ,
+                    }
+                }
+                dato = {
+                    where:{
+                        ...qy,
+                        account_desc: { contains: req.query.desc, mode: 'insensitive' },
+                        deletedAt:null
+                    }
+                }
+            }
+        } else if (req.query.p1 && req.query.p2 && req.query.p3) {
+            if (req.query.p1 === '0' && req.query.p2 === '0' && req.query.p3 === '0') {
+                dato = {
+                    where: {
+                        account_pid: 0,
+                        deletedAt:null
+                    },
+                };
+            } else if (req.query.p1 !== '0' && req.query.p2 !== '0' && req.query.p3 !== '0') {
+                dato = {
+                    where: {
+                        account_code: { startsWith: req.query.p1 + '.' + req.query.p2 + '.' + req.query.p3  },
+                        account_code: { not: { endsWith: '.0' } },
+                        deletedAt:null
+                    },
+                };
+            } else if (req.query.p1 !== '0' && req.query.p2 !== '0' && req.query.p3 === '0') {
+                dato = {
+                    where: {
+                        account_code: { startsWith: req.query.p1 + '.' + req.query.p2 },
+                        account_code: { endsWith: '.0' },
+                        deletedAt:null
+                    },
+                };
+            } else {
+                dato = {
+                    where: {
+                        account_code: { startsWith: req.query.p1,
+                        endsWith:'.0.0'
+                        },
+                        deletedAt:null
+                    },
+                };
+            }
+        }
+        const paginatedData = await paginateAndSortResults(dato,prisma.accountPlan, Number(page), Number(pageSize),sortBy, sortOrder);
+        res.json(paginatedData);
+    } catch(error){
+        res.status(500).json({ error: 'No se pudieron obtener registros.' });
+    }
+
+}
 
 export {
     getAllAccountPlans,
@@ -129,4 +216,5 @@ export {
     deleteAccountPlans,
     showAccountPlans,
     searchAccountPlans,
-  };
+    findByCode
+};
