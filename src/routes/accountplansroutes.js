@@ -90,6 +90,48 @@ router.get('/findAccountplansByCode', findByCode);
  *               $ref: '#/components/schemas/AccountPlans'
  *       500:
  *         description: Some server error
+ * /api/findAccountplansByCode:
+ *   get:
+ *     summary: Get the accountplan by a code value
+ *     tags: [AccountPlans]
+ *     parameters:
+ *       - in: query
+ *         name: desc
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The search value
+ *         example: Activo
+ *       - in: query
+ *         name: p1
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The search value
+ *         example: 1
+ *       - in: query
+ *         name: p2
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The search value
+ *         example: 2
+ *       - in: query
+ *         name: p3
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The search value
+ *         example: 3
+ *     responses:
+ *       200:
+ *         description: The accountplan response by id
+ *         contens:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AccountPlans'
+ *       404:
+ *         description: The accountplan was not found
  * /api/searchaccountplans:
  *   get:
  *     summary: Get the accountplan by a search value
