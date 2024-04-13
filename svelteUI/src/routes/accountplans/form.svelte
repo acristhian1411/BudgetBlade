@@ -48,7 +48,7 @@
 			.post(`${PUBLIC_APP_URL}/api/accountplans`, {
 				account_desc,
 				account_code,
-				account_pid
+				account_pid: account_p.id
 			})
 			.then((res) => {
 				let detail = {
@@ -66,7 +66,7 @@
 			.put(`${PUBLIC_APP_URL}/api/accountplans/${id}`, {
 				account_desc,
 				account_code,
-				account_pid
+				account_pid: account_p.id
 			})
 			.then((res) => {
 				let detail = {
@@ -99,6 +99,7 @@
 			if (p1 != 0 && p2 == 0) {
 				if (res.data.results.length > 0) {
 					var valor = res.data.results.sort((a, b) => a.account_code.localeCompare(b.account_code));
+					console.log(valor);
 					var p4 = valor[valor.length - 1].account_code.split('.')[1];
 					account_code = p1 + '.' + (parseInt(p4) + 1) + '.' + 0;
 				} else {
