@@ -119,7 +119,6 @@
 		fetchData(1, items_per_page);
 	}
 	onMount(async () => {
-		console.log('enviromentes', PUBLIC_APP_URL);
 		fetchData();
 	});
 </script>
