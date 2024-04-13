@@ -63,7 +63,8 @@ const searchPersonTypes = async (req, res) => {
         const tillsTypes = {
         where: {
             p_type_desc:{
-            contains: req.query.p_type_desc
+            contains: req.query.p_type_desc,
+            mode: 'insensitive'
             },
             deletedAt:null
         }

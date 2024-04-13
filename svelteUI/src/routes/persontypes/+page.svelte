@@ -113,7 +113,7 @@
 		if (search_param == '') {
 			url = `${PUBLIC_APP_URL}/api/persontypes?`;
 		} else {
-			url = `${PUBLIC_APP_URL}/api/searchpersons?p_type_desc=${search_param}&`;
+			url = `${PUBLIC_APP_URL}/api/searchpersontypes?p_type_desc=${search_param}&`;
 		}
 		fetchData(1, items_per_page);
 	}
