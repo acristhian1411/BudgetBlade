@@ -177,8 +177,7 @@ const findByCode = async (req, res) => {
             } else if (req.query.p1 !== '0' && req.query.p2 !== '0' && req.query.p3 !== '0') {
                 dato = {
                     where: {
-                        account_code: { startsWith: req.query.p1 + '.' + req.query.p2 + '.' + req.query.p3  },
-                        account_code: { not: { endsWith: '.0' } },
+                        account_code: { contains: req.query.p1 + '.' + req.query.p2 + '.' + req.query.p3  },
                         deletedAt:null
                     },
                 };
@@ -196,6 +195,22 @@ const findByCode = async (req, res) => {
                         account_code: { startsWith: req.query.p1,
                         endsWith:'.0.0'
                         },
+                        deletedAt:null
+                    },
+                };
+            }
+        }else{
+            if(req.query.p1 && req.query.p2 && !req.query.p3){
+                dato = {
+                    where: {
+                        account_code: { contains: req.query.p1 + '.' + req.query.p2 },
+                        deletedAt:null
+                    },
+                };
+            }else if(req.query.p1 && !req.query.p2 && !req.query.p3){
+                dato = {
+                    where: {
+                        account_code: { contains: req.query.p1 + '.0.0' },
                         deletedAt:null
                     },
                 };
