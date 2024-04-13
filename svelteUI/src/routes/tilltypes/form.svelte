@@ -3,6 +3,8 @@
 	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
+	import { PUBLIC_APP_URL } from '$env/static/public';
+
 	const dispatch = createEventDispatcher();
 	let id = 0;
 	let t_type_desc = '';
@@ -25,7 +27,7 @@
 	// http://127.0.0.1:5173/tilltypes
 	function handleCreateObject() {
 		axios
-			.post(`http://127.0.0.1:3000/api/tillstypes`, {
+			.post(`${PUBLIC_APP_URL}/api/tillstypes`, {
 				t_type_desc
 			})
 			.then((res) => {
@@ -41,7 +43,7 @@
 	}
 	function handleUpdateObject() {
 		axios
-			.put(`http://127.0.0.1:3000/api/tillstypes/${id}`, {
+			.put(`${PUBLIC_APP_URL}/api/tillstypes/${id}`, {
 				t_type_desc
 			})
 			.then((res) => {

@@ -2,6 +2,8 @@
 	/** @type {import('./$types').PageData} */
 	import axios from 'axios';
 	import { onMount } from 'svelte';
+	import { PUBLIC_APP_URL } from '$env/static/public';
+
 	let error;
 	let tilltype;
 
@@ -9,7 +11,7 @@
 
 	async function fetchData() {
 		axios
-			.get(`http://127.0.0.1:3000/api/tillstypes/${data.id}`)
+			.get(`${PUBLIC_APP_URL}/api/tillstypes/${data.id}`)
 			.then((response) => {
 				tilltype = response.data;
 			})
