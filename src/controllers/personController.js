@@ -5,17 +5,17 @@ import softDelete from '../utilities/softDelete.js';
 
 const getAllPersons = async(req,res)=>{
     try {
-        const { page = 1, pageSize = 10, sortBy = 'person_id', sortOrder = 'asc' } = req.query;    
+        const { page = 1, pageSize = 10, sortBy = 'person_id', sortOrder = 'asc' } = req.query;   
         var consult = {
-            where: {
-                deletedAt:null,
-            },
             include:{
-                persontype:{
+                persontype: {
                     select:{
                         p_type_desc:true
                     }
                 }
+            },
+            where: {
+                deletedAt:null,
             }
         }    
         const paginatedData = await paginateAndSortResults(consult,prisma.persons,  Number(page), Number(pageSize), sortBy, sortOrder);

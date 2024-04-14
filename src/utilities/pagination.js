@@ -9,8 +9,14 @@ const paginateAndSortResults = async (consult,model, page = 1, pageSize = 10, so
     take: pageSize,
     skip,
   });
+  var cons
+  cons = {
+    where:{
+      ...consult.where
+    }
+  }
   const totalCount = await model.count({
-    ...consult,
+    ...cons,
   });
 
   const totalPages = Math.ceil(totalCount / pageSize);
