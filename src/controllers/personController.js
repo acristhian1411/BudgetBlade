@@ -102,12 +102,35 @@ const searchPersons = async (req, res) => {
     try {
         const { page = 1, pageSize = 10, sortBy = 'person_id', sortOrder = 'asc' } = req.query;        
         const persons = {
-        where: {
-            person_fname:{
-            contains: req.query.person_fname
+            where: {
+                OR:[{
+                    person_fname:{
+                        contains: req.query.search,
+                        mode: 'insensitive'
+                        }
+                    },
+                    {
+                    person_lname:{
+                        contains: req.query.search,
+                        mode: 'insensitive'
+                        }
+                    },
+                    {
+                    person_idnumber:{
+                        contains: req.query.search,
+                        mode: 'insensitive'
+                        }
+                    }
+                ],
+                deletedAt:null
             },
-            deletedAt:null
-        },
+            include:{
+                persontype: {
+                    select:{
+                        p_type_desc:true
+                    }
+                }
+            }
         }
         const paginatedData = await paginateAndSortResults(persons, prisma.persons, Number(page), Number(pageSize),sortBy, sortOrder);
         res.json(paginatedData);
