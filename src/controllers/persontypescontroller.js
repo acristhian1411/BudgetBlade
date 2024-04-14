@@ -22,9 +22,16 @@ const createPersonType = async (req,res)=>{
             p_type_desc:req.body.p_type_desc
         }
     })
-    res.json(type)
+    res.status(201).json({message:'Registro creado correctamente',data:type})
 }
 
+/**
+ * Retrieves a specific person type.
+ *
+ * @param {Object} req - Object containing the request with the ID of the person type to retrieve.
+ * @param {Object} res - Object for the response.
+ * @return {Object} The requested person type.
+ */
 const showPersonType = async (req,res)=>{
     const type = await prisma.personTypes.findFirst({
         where:{
@@ -44,7 +51,7 @@ const updatePersonType = async (req,res)=>{
             p_type_desc:req.body.p_type_desc
         }
     })
-    res.json(type)
+    res.status(200).json({message:'Registro actualizado correctamente.',data:type})
 }
 
 const deletePersonType = async (req,res)=>{
