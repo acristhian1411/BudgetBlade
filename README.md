@@ -23,8 +23,11 @@
 4. Copia el archivo de configuración: `cp .env.example .env`
 5. Configura la base de datos en el archivo `.env`
 6. Ejecuta las migraciones: `npx prisma migrate dev`
-7. Lanza la aplicación: `npm start` o `npm run dev`
-8. Ve a la documentación de la api en: [http://localhost:3000/docs]
+7. Accede al directorio del frontend: `cd svelteUI`
+8. Instala las dependencias del frontend: `npm install`
+9. Compila el frontend: `npm run build`
+10. Lanza la aplicación dentro del directorio principal: `npm start` o `npm run dev`
+11. Ve a la documentación de la api en: [http://localhost:3000/docs]
 
 ## Licencia
 
