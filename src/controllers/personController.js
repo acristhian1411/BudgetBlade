@@ -45,6 +45,13 @@ const showPersons = async (req,res)=>{
         where:{
             person_id:parseInt(req.params.id),
             deletedAt:null
+        },
+        include:{
+            persontype: {
+                select:{
+                    p_type_desc:true
+                }
+            }
         }
     })
     res.json(type)
