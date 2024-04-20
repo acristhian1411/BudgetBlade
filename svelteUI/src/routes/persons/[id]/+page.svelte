@@ -38,23 +38,17 @@
 </div>
 {#if person}
 	<section>
-		<div class="mb-4 flex content-center items-start justify-start gap-2">
-			<h1 class="text-xl font-bold">Nombres y apellido:</h1>
-			<p class="text-1xl mb-4 flex self-center">
-				{person.person_fname + ' ' + person.person_lname}
-			</p>
-		</div>
-		<div class="mb-4 flex items-start gap-2">
-			<h1 class="text-xl font-bold">Cédula:</h1>
-			<p class="text-1xl mb-4">{person.person_idnumber}</p>
-		</div>
-		<div class="mb-4 flex items-start gap-2">
-			<h1 class="text-xl font-bold">Fecha de nacimiento:</h1>
-			<p class="text-1xl mb-4">{new Date(person.birthDate).toLocaleDateString()}</p>
-		</div>
-		<div class="mb-4 flex items-start gap-2">
-			<h1 class="text-xl font-bold">Tipo:</h1>
-			<p class="text-1xl mb-4">{person.persontype.p_type_desc}</p>
+		<div class="card bg-base-100 w-96 h-90 shadow-xl">
+			<figure><img src="/images/{person.person_photo}" alt="Avatar" /></figure>
+			<div class="card-body">
+				<h2 class="card-title">{person.person_fname + ' ' + person.person_lname}</h2>
+				<p>Cédula: {person.person_idnumber}</p>
+				<p>Fecha de nacimiento: {new Date(person.birthDate).toLocaleDateString()}</p>
+				<p class="text-1xl mb-4">Tipo: {person.persontype.p_type_desc}</p>
+				<!-- <div class="card-actions justify-end">
+					<button class="btn btn-primary">Buy Now</button>
+				</div> -->
+			</div>
 		</div>
 	</section>
 {/if}
