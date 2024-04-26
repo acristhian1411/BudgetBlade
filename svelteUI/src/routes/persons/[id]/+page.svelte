@@ -45,9 +45,6 @@
 				<p>Cédula: {person.person_idnumber}</p>
 				<p>Fecha de nacimiento: {new Date(person.birthDate).toLocaleDateString()}</p>
 				<p class="text-1xl mb-4">Tipo: {person.persontype.p_type_desc}</p>
-				<!-- <div class="card-actions justify-end">
-					<button class="btn btn-primary">Buy Now</button>
-				</div> -->
 			</div>
 		</div>
 	</section>

@@ -3,18 +3,23 @@
 	import axios from 'axios';
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
+	import {fail} from '@sveltejs/kit';
 	import { PUBLIC_APP_URL } from '$env/static/public';
+
 
 	const dispatch = createEventDispatcher();
 	let person_id = 0;
 	let person_fname = '';
 	let person_lname = '';
 	let person_idnumber = '';
+	let person_photo = '';
+	let newFile;
 	let birthDate = '';
 	let p_type_id;
 	let p_type_desc = '';
 	let person_types = [];
 	let p_types_selected;
+	let can_upload = false;
 	let step = 0;
 	let user_name = '';
 	let user_password = '';
@@ -44,6 +49,7 @@
 			person_fname = item.person_fname;
 			person_lname = item.person_lname;
 			person_idnumber = item.person_idnumber;
+			person_photo = item.person_photo;
 			var date = new Date(item.birthDate);
 			var month = date.getMonth() + 1;
 			var day = date.getDate();
@@ -97,6 +103,20 @@
 				OpenAlertMessage(detail);
 				close();
 			});
+	}
+	async function handleChangePhoto(event){
+		person_photo = event.target.files[0];
+		console.log(event.target.files)
+		if (!person_photo || !(person_photo instanceof File)) {
+    		console.log('Seleccione una imagen válida');
+  		}
+  		const extension = person_photo.name.split('.').pop();
+  		const newFileName = `${person_fname} ${person_lname} ${person_idnumber}.${extension}`;
+   		newFile = new File([person_photo], newFileName, { type: person_photo.type });
+		
+	}
+	function handleUploadPhoto(){
+		can_upload = true;
 	}
 	function handleNextStep() {
 		step++;
@@ -164,6 +184,19 @@
 		</section>
 	{:else if step == 1}
 		<section id="user" class:invisible={step != 1}>
+			<div class="mb-4 flex items-center w-20 h-20">
+				<label for="user_name" class="mr-2">Foto:</label>
+				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+				<picture>
+					<!-- svelte-ignore a11y-click-events-have-key-events -->
+					<img on:click={() => (handleUploadPhoto())} accept=".jpg, .jpeg, .png, .webp" class="object-cover" src="/images/{person_photo}" alt="avatar"/>
+				</picture>					
+			</div>
+			{#if edit == true}
+					{#if can_upload == true}
+						<input type="file" bind:files={person_photo} on:change={handleChangePhoto} />
+					{/if}
+			{/if}
 			<div class="mb-4 flex items-center">
 				<label for="user_name" class="mr-2">Usuario:</label>
 				<input type="text" bind:value={user_name} class="input input-bordered w-full max-w-xs" />
