@@ -73,9 +73,9 @@ model DetailsTransfer {
 
 model AccountPlan {
   id           Int           @id @default(autoincrement())
-  account_pid  Int
+  account_pid  Int?
   account_desc String        @unique
-  account_code String        @unique
+  account_code String?        @unique
   TillDetails  TillDetails[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
