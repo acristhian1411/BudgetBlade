@@ -5,7 +5,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import {fail} from '@sveltejs/kit';
 	import { PUBLIC_APP_URL } from '$env/static/public';
-
+	import Dropzone from "svelte-file-dropzone";
 
 	const dispatch = createEventDispatcher();
 	let person_id = 0;
@@ -21,6 +21,10 @@
 	let p_types_selected;
 	let can_upload = false;
 	let step = 0;
+	let files = {
+    accepted: [],
+    rejected: []
+  };
 	let user_name = '';
 	let user_password = '';
 	export let edit;
@@ -29,6 +33,23 @@
 		dispatch('close');
 	}
 
+	function handleFilesSelect(e) {
+		const { acceptedFiles, fileRejections } = e.detail;
+		person_photo = `${getImageUrl(acceptedFiles[0])}`;	
+		if (files.accepted.length > 0) {
+			files.accepted.splice(0, 1); // Eliminar la primera imagen (solo se permite una)
+		}
+
+		// Actualizar la lista de archivos aceptados y rechazados
+		files.accepted = [...acceptedFiles];
+		files.rejected = [...fileRejections];
+		// files.accepted = [...files.accepted, ...acceptedFiles];
+		// files.rejected = [...files.rejected, ...fileRejections];
+		const extension = files.accepted[0].name.split('.').pop();
+  		const newFileName = `${person_fname} ${person_lname} ${person_idnumber}.${extension}`;
+   		newFile = new File([files.accepted[0]], newFileName, { type: files.accepted[0].type });
+		can_upload = false;
+  	}
 	function OpenAlertMessage(event) {
 		dispatch('message', event.detail);
 	}
@@ -49,7 +70,7 @@
 			person_fname = item.person_fname;
 			person_lname = item.person_lname;
 			person_idnumber = item.person_idnumber;
-			person_photo = item.person_photo;
+			person_photo = `/images/${item.person_photo}`;
 			var date = new Date(item.birthDate);
 			var month = date.getMonth() + 1;
 			var day = date.getDate();
@@ -71,7 +92,9 @@
 				person_lname,
 				person_idnumber,
 				birthDate,
-				p_type_id: p_types_selected.id
+				p_type_id: p_types_selected.id,
+				person_photo: newFile.name,
+				photo: newFile
 			})
 			.then((res) => {
 				let detail = {
@@ -91,9 +114,12 @@
 				person_lname,
 				person_idnumber,
 				birthDate,
-				p_type_id: p_types_selected.id
+				p_type_id: p_types_selected.id,
+				person_photo: newFile.name,
+				file: files.accepted[0]
 			})
 			.then((res) => {
+				UploadPhoto()
 				let detail = {
 					detail: {
 						type: 'success',
@@ -104,16 +130,16 @@
 				close();
 			});
 	}
-	async function handleChangePhoto(event){
-		person_photo = event.target.files[0];
-		console.log(event.target.files)
-		if (!person_photo || !(person_photo instanceof File)) {
+	async function UploadPhoto(){
+		// person_photo = event.target.files[0];
+		// console.log(event.target.files)
+		if (!(files.accepted[0] instanceof File)) {
     		console.log('Seleccione una imagen válida');
   		}
-  		const extension = person_photo.name.split('.').pop();
-  		const newFileName = `${person_fname} ${person_lname} ${person_idnumber}.${extension}`;
-   		newFile = new File([person_photo], newFileName, { type: person_photo.type });
-		
+		const extension = files.accepted[0].name.split('.').pop();
+		const newFileName = `${person_fname}-${person_lname}-${person_idnumber}.${extension}`;
+		newFile = new File([files.accepted[0]], newFileName, { type: files.accepted[0].type });
+    	// await writeFile(newFileName, Buffer.from(await newFile?.arrayBuffer()));		
 	}
 	function handleUploadPhoto(){
 		can_upload = true;
@@ -125,6 +151,9 @@
 	function handlePrevStep() {
 		step--;
 	}
+	function getImageUrl(file) {
+    return URL.createObjectURL(file);
+  }
 </script>
 
 {#if edit == true}
@@ -185,17 +214,26 @@
 	{:else if step == 1}
 		<section id="user" class:invisible={step != 1}>
 			<div class="mb-4 flex items-center w-20 h-20">
+				
+				
 				<label for="user_name" class="mr-2">Foto:</label>
 				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-				<picture>
-					<!-- svelte-ignore a11y-click-events-have-key-events -->
-					<img on:click={() => (handleUploadPhoto())} accept=".jpg, .jpeg, .png, .webp" class="object-cover" src="/images/{person_photo}" alt="avatar"/>
-				</picture>					
+				{#if edit == true}
+					<picture>
+						<!-- svelte-ignore a11y-click-events-have-key-events -->
+						<img on:click={() => (handleUploadPhoto())} accept=".jpg, .jpeg, .png, .webp" class="object-cover" src="{person_photo}" alt="avatar"/>
+					</picture>	
+				{:else}
+				<button class="btn btn-primary" on:click={() => (handleUploadPhoto())}>
+					upload photo
+				</button>
+				{/if}
 			</div>
 			{#if edit == true}
-					{#if can_upload == true}
-						<input type="file" bind:files={person_photo} on:change={handleChangePhoto} />
-					{/if}
+				{#if can_upload == true}
+					<Dropzone multiple={false} on:drop={handleFilesSelect} />
+					<!-- <input type="file" bind:files={person_photo} on:change={handleChangePhoto} /> -->
+				{/if}
 			{/if}
 			<div class="mb-4 flex items-center">
 				<label for="user_name" class="mr-2">Usuario:</label>

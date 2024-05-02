@@ -8,12 +8,27 @@ import {
   searchPersons,
   personTypesList
 } from '../controllers/personController.js';
+import multer from 'multer';
+import path from 'path';
 
 const router = express.Router();
 
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path.join(__dirname, 'uploads/')); // Guardar archivos en la carpeta "uploads"
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname); // Mantener el nombre original del archivo
+  }
+});
+
+// Middleware de multer para la subida de archivos
+const upload = multer({ storage: storage }).single('photo');
+
+
 router.get('/persons', getAllPersons);
 router.post('/persons', createPersons);
-router.put('/persons/:id', updatePersons);
+router.put('/persons/:id',upload, updatePersons);
 router.delete('/persons/:id', deletePersons);
 router.get('/persons/:id', showPersons);
 router.get('/searchpersons', searchPersons);
