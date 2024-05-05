@@ -15,20 +15,32 @@ const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, path.join(__dirname, 'uploads/')); // Guardar archivos en la carpeta "uploads"
+    cb(null, 'svelteUI/static/images'); 
   },
   filename: function (req, file, cb) {
     cb(null, file.originalname); // Mantener el nombre original del archivo
   }
 });
 
-// Middleware de multer para la subida de archivos
-const upload = multer({ storage: storage }).single('photo');
+const upload = multer({ storage:storage});
+// const upload = multer({ dest: 'svelteUI/static/images'}).single('file');
 
+router.post('upload_avatar',)
 
+router.put('/upload_avatar', upload.single('file'), async (req, res) => {
+  const { file } = req; // El archivo se encuentra en req.file
+  
+  try {
+    // Lógica para guardar el nombre del archivo en la base de datos
+    res.status(200).json({ message: 'Archivo subido correctamente',file:file.originalname });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ message: error });
+  }
+});
 router.get('/persons', getAllPersons);
 router.post('/persons', createPersons);
-router.put('/persons/:id',upload, updatePersons);
+router.put('/persons/:id', updatePersons);
 router.delete('/persons/:id', deletePersons);
 router.get('/persons/:id', showPersons);
 router.get('/searchpersons', searchPersons);
