@@ -10,9 +10,12 @@
     env = {};
     idx = {
     extensions = [
-        # "vscodevim.vim"
+        # "vscodevim.vim" 
         "dbaeumer.vscode-eslint"
         "usernamehw.errorlens"
+        "eamodio.gitlens"
+        "Orta.vscode-jest"
+        "svelte.svelte-vscode"
     ];
     workspace = { 
         # Runs when a workspace is first created with this `dev.nix` file
