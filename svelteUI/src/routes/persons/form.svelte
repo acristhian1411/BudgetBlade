@@ -6,6 +6,7 @@
 	import {fail} from '@sveltejs/kit';
 	import { PUBLIC_APP_URL } from '$env/static/public';
 	import Dropzone from "svelte-file-dropzone";
+	import { createFormData } from './helper'; 
 
 	const dispatch = createEventDispatcher();
 	let person_id = 0;
@@ -22,13 +23,14 @@
 	let can_upload = false;
 	let step = 0;
 	let files = {
-    accepted: [],
-    rejected: []
-  };
+		accepted: [],
+		rejected: []
+  	};
 	let user_name = '';
 	let user_password = '';
 	export let edit;
 	export let item;
+	let formData = new FormData();
 	function close() {
 		dispatch('close');
 	}
@@ -49,6 +51,7 @@
   		const newFileName = `${person_fname} ${person_lname} ${person_idnumber}.${extension}`;
    		newFile = new File([files.accepted[0]], newFileName, { type: files.accepted[0].type });
 		can_upload = false;
+		formData.append('file',newFile)
   	}
 	function OpenAlertMessage(event) {
 		dispatch('message', event.detail);
@@ -85,7 +88,7 @@
 		}
 	});
 
-	function handleCreateObject() {
+	async function handleCreateObject() {
 		axios
 			.post(`${PUBLIC_APP_URL}/api/persons`, {
 				person_fname,
@@ -94,9 +97,17 @@
 				birthDate,
 				p_type_id: p_types_selected.id,
 				person_photo: newFile.name,
-				photo: newFile
 			})
 			.then((res) => {
+
+				const data = createFormData(formData);
+				const response =  fetch(`${PUBLIC_APP_URL}/api/upload_avatar`, {
+				method: 'PUT',
+				body: data,
+				});
+				const result =  response.json();
+				console.log(result);
+
 				let detail = {
 					detail: {
 						type: 'success',
@@ -107,7 +118,7 @@
 				close();
 			});
 	}
-	function handleUpdateObject() {
+	async function handleUpdateObject() {
 		axios
 			.put(`${PUBLIC_APP_URL}/api/persons/${person_id}`, {
 				person_fname,
@@ -116,10 +127,15 @@
 				birthDate,
 				p_type_id: p_types_selected.id,
 				person_photo: newFile.name,
-				file: files.accepted[0]
 			})
 			.then((res) => {
-				UploadPhoto()
+				const data = createFormData(formData);
+				const response =  fetch(`${PUBLIC_APP_URL}/api/upload_avatar`, {
+				method: 'PUT',
+				body: data,
+				});
+				const result =  response.json();
+				console.log(result);
 				let detail = {
 					detail: {
 						type: 'success',

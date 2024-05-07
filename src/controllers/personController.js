@@ -87,9 +87,6 @@ const updatePersons = async (req,res)=>{
     const date = new Date(req.body.birthDate)
     req.body.birthDate = date
     req.body.p_type_id = parseInt(req.body.p_type_id)    
-    const file = req.file;
-    console.log('path',path)
-    console.log('file',req)
     var to_update = {
         person_fname:req.body.person_fname,
         person_lname:req.body.person_lname,
@@ -97,11 +94,6 @@ const updatePersons = async (req,res)=>{
         person_idnumber: req.body.person_idnumber,
         p_type_id: req.body.p_type_id,
         person_photo: req.body.person_photo
-    }
-    if (file) {
-        // req.body.photo = file.filename; // Guardar el nombre del archivo en req.body.photo
-        console.log('aca hace algo')
-        to_update.person_photo= file.filename
     }
         const type = await prisma.persons.update({
             where:{
