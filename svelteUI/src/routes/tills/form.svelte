@@ -1,0 +1,158 @@
+<script>
+	// @ts-nocheck
+	import axios from 'axios';
+	import { onMount } from 'svelte';
+	import { createEventDispatcher } from 'svelte';
+	import { PUBLIC_APP_URL } from '$env/static/public';
+	import MaskInput from 'svelte-input-mask';
+
+	const dispatch = createEventDispatcher();
+	let id = 0;
+	let TILL_NAME = '';
+    let TILL_ACCOUNT_NUMBER = ''
+	let account_code = '';
+	let person_id = 0;
+	let person;
+	let person_name = '';
+	let persons = [];
+    let t_type_id = 0;
+	let t_type;
+	let t_type_desc = '';
+	let t_types = [];
+	export let edit;
+	export let item;
+	function close() {
+		dispatch('close');
+	}
+
+	function OpenAlertMessage(event) {
+		dispatch('message', event.detail);
+	}
+
+	async function fetchPersons() {
+		axios.get(`${PUBLIC_APP_URL}/api/persons`).then((res) => {
+			persons = res.data.results;
+			if (edit == true) {
+				person = res.data.results.find((account) => account.person_id == item.person_id);
+				person_name = person.person_fname+' '+person.person_lname;
+			}
+		});
+	}
+
+    async function fetchTillsTypes() {
+		axios.get(`${PUBLIC_APP_URL}/api/tillstypes`).then((res) => {
+			t_types = res.data.results;
+			if (edit == true) {
+				t_type = res.data.results.find((account) => account.id == item.id);
+				t_type_desc = t_type.t_type_desc;
+			}
+		});
+	}
+
+	onMount(() => {
+		fetchPersons();
+		fetchTillsTypes();
+		if (edit == true) {
+			id = item.id;
+			TILL_NAME = item.TILL_NAME;
+			TILL_ACCOUNT_NUMBER = item.TILL_ACCOUNT_NUMBER;
+			t_type_id = item.t_type_id;
+			person_id = item.person_id;
+		}
+	});
+	async function handleCreateObject() {
+		axios
+			.post(`${PUBLIC_APP_URL}/api/accountplans`, {
+				TILL_NAME,
+				account_code,
+				person_id: person.id
+			})
+			.then((res) => {
+				let detail = {
+					detail: {
+						type: 'success',
+						message: res.data.message
+					}
+				};
+				OpenAlertMessage(detail);
+				close();
+			});
+	}
+	function handleUpdateObject() {
+		axios
+			.put(`${PUBLIC_APP_URL}/api/accountplans/${id}`, {
+				TILL_NAME,
+				account_code,
+				person_id: person.id
+			})
+			.then((res) => {
+				let detail = {
+					detail: {
+						type: 'success',
+						message: res.data.message
+					}
+				};
+				OpenAlertMessage(detail);
+				close();
+			});
+	}
+	function formatAccountCode(event) {
+		// account_code = event.inputState.maskedValue;
+	}
+
+	function handleChangeSelect(event,array,label) {
+		[label] = event.target.options[event.target.selectedIndex].text;
+		var account = persons.find((account) => account.id == person.id);
+    }
+</script>
+
+{#if edit == true}
+	<h3 class="mb-4 text-center text-2xl">Actualizar Caja</h3>
+{:else}
+	<h3 class="mb-4 text-center text-2xl">Crear Caja</h3>
+{/if}
+<form>
+	<div class="mb-4 flex items-center">
+		<label for="TILL_NAME" class="mr-2">Descripción</label>
+		<input type="text" bind:value={TILL_NAME} class="input input-bordered w-full max-w-xs" />
+	</div>
+    <div class="mb-4 flex items-center">
+		<label for="TILL_NAME" class="mr-2">N° de Cuenta</label>
+		<input type="text" bind:value={TILL_ACCOUNT_NUMBER} class="input input-bordered w-full max-w-xs" />
+	</div>
+	<div class="mb-4 flex items-center">
+		<label for="person_id" class="mr-2">Pertenece a: </label>
+		<select
+			id="person_id"
+			class="select select-bordered w-full max-w-xs"
+			bind:value={person}
+			on:change={(e) => handleChangeSelect(e)}
+		>
+			{#each persons as person}
+				<option value={person}>
+					{person.person_fname+' '+person.person_lname}
+				</option>
+			{/each}
+		</select>
+	</div>
+	<div class="mb-4 flex items-center">
+		<label for="person_id" class="mr-2">Tipo de caja: </label>
+		<select
+			id="t_type_id"
+			class="select select-bordered w-full max-w-xs"
+			bind:value={t_type}
+			on:change={(e) => handleChangeSelect(e)}
+		>
+			{#each t_types as tp}
+				<option value={tp}>
+					{tp.t_type_desc}
+				</option>
+			{/each}
+		</select>
+	</div>
+	<button
+		class="btn btn-primary"
+		on:click={edit == true ? handleUpdateObject() : handleCreateObject()}>Guardar</button
+	>
+	<button class="btn btn-secondary" on:click={close}>Cancelar</button>
+</form>
