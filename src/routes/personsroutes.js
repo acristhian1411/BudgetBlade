@@ -15,7 +15,10 @@ const router = express.Router();
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
+    cb(null, 'images'); 
+    cb(null, 'svelteUI/build/client/images'); 
     cb(null, 'svelteUI/static/images'); 
+    cb(null, 'svelteUI/.svelte-kit/output/client/images'); 
   },
   filename: function (req, file, cb) {
     cb(null, file.originalname); // Mantener el nombre original del archivo

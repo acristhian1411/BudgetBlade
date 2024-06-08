@@ -48,7 +48,7 @@
 		// files.accepted = [...files.accepted, ...acceptedFiles];
 		// files.rejected = [...files.rejected, ...fileRejections];
 		const extension = files.accepted[0].name.split('.').pop();
-  		const newFileName = `${person_fname} ${person_lname} ${person_idnumber}.${extension}`;
+  		const newFileName = `${person_fname}-${person_lname}-${person_idnumber}-${Date.now()}.${extension}`;
    		newFile = new File([files.accepted[0]], newFileName, { type: files.accepted[0].type });
 		can_upload = false;
 		formData.append('file',newFile)
@@ -153,7 +153,7 @@
     		console.log('Seleccione una imagen válida');
   		}
 		const extension = files.accepted[0].name.split('.').pop();
-		const newFileName = `${person_fname}-${person_lname}-${person_idnumber}.${extension}`;
+		const newFileName = `${person_fname}-${person_lname}-${person_idnumber}-${Date.now()}.${extension}`;
 		newFile = new File([files.accepted[0]], newFileName, { type: files.accepted[0].type });
     	// await writeFile(newFileName, Buffer.from(await newFile?.arrayBuffer()));		
 	}
