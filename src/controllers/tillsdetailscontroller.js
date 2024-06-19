@@ -15,8 +15,8 @@ const getAllTillsDetails = async(req,res)=>{
         const types = {
             where: { deletedAt: null }
         }
-        const paginatedData = await paginateAndSortResults(types,prisma.tillDetails,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
-        // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
+        const paginatedData = await paginateAndSortResults(req,types,prisma.tillDetails,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
+        // const paginatedData = paginateAndSortResults(req,tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener registros.' });

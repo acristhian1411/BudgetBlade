@@ -9,7 +9,7 @@ const getAllPersonTypes = async(req,res)=>{
     const types = {
         where: { deletedAt: null }
     }
-        const paginatedData = await paginateAndSortResults(types,prisma.personTypes,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
+        const paginatedData = await paginateAndSortResults(req,types,prisma.personTypes,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
     res.json(paginatedData);
 } catch (error) {
     res.status(500).json({ error: 'No se pudieron obtener registros.' });
@@ -76,7 +76,7 @@ const searchPersonTypes = async (req, res) => {
             deletedAt:null
         }
         }
-        const paginatedData = await paginateAndSortResults(tillsTypes,prisma.personTypes, Number(page), Number(pageSize),sortBy, sortOrder);
+        const paginatedData = await paginateAndSortResults(req,tillsTypes,prisma.personTypes, Number(page), Number(pageSize),sortBy, sortOrder);
         res.json(paginatedData);
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });

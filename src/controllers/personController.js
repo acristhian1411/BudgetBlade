@@ -18,8 +18,8 @@ const getAllPersons = async(req,res)=>{
                 deletedAt:null,
             }
         }    
-        const paginatedData = await paginateAndSortResults(consult,prisma.persons,  Number(page), Number(pageSize), sortBy, sortOrder);
-        // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
+        const paginatedData = await paginateAndSortResults(req,consult,prisma.persons,  Number(page), Number(pageSize), sortBy, sortOrder);
+        // const paginatedData = paginateAndSortResults(req,tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
         console.log('error',error)
@@ -75,8 +75,8 @@ const personTypesList = async(req,res)=>{
                 }
             }
         }    
-        const paginatedData = await paginateAndSortResults(consult,prisma.persons,  Number(page), Number(pageSize), sortBy, sortOrder);
-        // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
+        const paginatedData = await paginateAndSortResults(req,consult,prisma.persons,  Number(page), Number(pageSize), sortBy, sortOrder);
+        // const paginatedData = paginateAndSortResults(req,tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
         console.log('error',error)
@@ -148,7 +148,7 @@ const searchPersons = async (req, res) => {
                 }
             }
         }
-        const paginatedData = await paginateAndSortResults(persons, prisma.persons, Number(page), Number(pageSize),sortBy, sortOrder);
+        const paginatedData = await paginateAndSortResults(req,persons, prisma.persons, Number(page), Number(pageSize),sortBy, sortOrder);
         res.json(paginatedData);
     } catch (error) {
         console.log('para mostrar error',error)

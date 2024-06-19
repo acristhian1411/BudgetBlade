@@ -19,7 +19,7 @@ const getAllAccountPlans = async (req, res) => {
         const tillsTypes = await prisma.accountPlan.findMany({
             where: { deletedAt: null }, 
         });
-        const paginatedData = await paginateAndSortResults(consult, prisma.accountPlan, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
+        const paginatedData = await paginateAndSortResults(req,consult, prisma.accountPlan, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
         res.status(200).json(paginatedData);;
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener registros.' });
@@ -112,7 +112,7 @@ const searchAccountPlans = async (req, res) => {
             deletedAt:null
         }
         }
-        const paginatedData = await paginateAndSortResults(tillsTypes,prisma.accountPlan, Number(page), Number(pageSize),sortBy, sortOrder);
+        const paginatedData = await paginateAndSortResults(req,tillsTypes,prisma.accountPlan, Number(page), Number(pageSize),sortBy, sortOrder);
 
         res.json(paginatedData);
     } catch (error) {
@@ -223,7 +223,7 @@ const findByCode = async (req, res) => {
                 };
             }
         }
-        const paginatedData = await paginateAndSortResults(dato,prisma.accountPlan, Number(page), Number(pageSize),sortBy, sortOrder);
+        const paginatedData = await paginateAndSortResults(req,dato,prisma.accountPlan, Number(page), Number(pageSize),sortBy, sortOrder);
         res.json(paginatedData);
     } catch(error){
         res.status(500).json({ error: 'No se pudieron obtener registros.' });

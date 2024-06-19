@@ -17,6 +17,7 @@ const getAllDetailsTransfers = async (req, res) => {
     });
 
     const paginatedData = await paginateAndSortResults(
+      req,
       consult,
       prisma.detailsTransfer,
       Number(page),
@@ -104,6 +105,7 @@ const searchDetailsTransfers = async (req, res) => {
     };
 
     const paginatedData = await paginateAndSortResults(
+      req,
       detailsTransfers,
       prisma.detailsTransfer,
       Number(page),

@@ -19,7 +19,7 @@ const getAllTillsTypes = async (req, res) => {
         const tillsTypes = await prisma.tillsTypes.findMany({
             where: { deletedAt: null }, 
         });
-        const paginatedData = await paginateAndSortResults(consult, prisma.tillsTypes, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
+        const paginatedData = await paginateAndSortResults(req,consult, prisma.tillsTypes, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
         res.status(200).json(paginatedData);;
     } catch (error) {
         console.log('para mostrar error',error)
@@ -113,9 +113,8 @@ const searchTillsTypes = async (req, res) => {
             deletedAt:null
         }
         }
-        const paginatedData = await paginateAndSortResults(tillsTypes,prisma.tillsTypes, Number(page), Number(pageSize),sortBy, sortOrder);
+        const paginatedData = await paginateAndSortResults(req,tillsTypes,prisma.tillsTypes, Number(page), Number(pageSize),sortBy, sortOrder);
 
-        // const paginatedData = paginateAndSortResults(tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });

@@ -12,7 +12,9 @@ import multer from 'multer';
 import path from 'path';
 
 const router = express.Router();
-
+// WARNING esto aparentemente no funciona desde svelte compilado pero si cuando se usan por separado
+// TODO investigar como funcionan las imagenes cuando se ejecuta un compilado de svelte
+// [ ]  arreglar imagenes
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, 'images'); 
