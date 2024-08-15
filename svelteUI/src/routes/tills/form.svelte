@@ -62,9 +62,10 @@
 	});
 	async function handleCreateObject() {
 		axios
-			.post(`${PUBLIC_APP_URL}/api/accountplans`, {
+			.post(`${PUBLIC_APP_URL}/api/tills`, {
 				TILL_NAME,
-				account_code,
+				TILL_ACCOUNT_NUMBER,
+				t_type_id: t_type.id,
 				person_id: person.id
 			})
 			.then((res) => {
@@ -80,7 +81,7 @@
 	}
 	function handleUpdateObject() {
 		axios
-			.put(`${PUBLIC_APP_URL}/api/accountplans/${id}`, {
+			.put(`${PUBLIC_APP_URL}/api/tills/${id}`, {
 				TILL_NAME,
 				account_code,
 				person_id: person.id
@@ -101,8 +102,13 @@
 	}
 
 	function handleChangeSelect(event,array,label) {
+		console.log(event.target.value)
 		[label] = event.target.options[event.target.selectedIndex].text;
-		var account = persons.find((account) => account.id == person.id);
+		if(array = 'person'){
+			person = persons.find((person) => person.person_id == event.target.value);
+		}else if(array = 't_type'){
+			t_type = t_types.find((ttype) => ttype.id == event.target.value);
+		}
     }
 </script>
 
@@ -126,7 +132,7 @@
 			id="person_id"
 			class="select select-bordered w-full max-w-xs"
 			bind:value={person}
-			on:change={(e) => handleChangeSelect(e)}
+			on:change={(e) => handleChangeSelect(e,'person','person_name')}
 		>
 			{#each persons as person}
 				<option value={person}>
@@ -141,7 +147,7 @@
 			id="t_type_id"
 			class="select select-bordered w-full max-w-xs"
 			bind:value={t_type}
-			on:change={(e) => handleChangeSelect(e)}
+			on:change={(e) => handleChangeSelect(e,'t_type','t_type_desc')}
 		>
 			{#each t_types as tp}
 				<option value={tp}>

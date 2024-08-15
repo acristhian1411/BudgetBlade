@@ -7,7 +7,10 @@
 	import Alert from '$lib/utilities/alert.svelte';
 	import Modal from '$lib/utilities/modal.svelte';
 	import Form from './form.svelte';
+	import SearchIcon from '../../components/Icons/SearchIcon.svelte';
+	import SortIcon from '../../components/Icons/SortIcon.svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
+	import ErrorAlert from '../../components/Alerts/ErrorAlert.svelte';
 	let data = [];
 	let error = null;
 	let openAlert = false;
@@ -43,7 +46,8 @@
 				total_pages = response.data.totalPages;
 			})
 			.catch((err) => {
-				error = err;
+				console.log(err.request.response)
+				error = err.request.response;
 			});
 	}
 
@@ -56,7 +60,9 @@
 		alertType = event.detail.type;
 		alertMessage = event.detail.message;
 	}
-
+	function ClearError(){
+		error = null;
+	}
 	function deleteRecord() {
 		axios.delete(`${PUBLIC_APP_URL}/api/tillstypes/${id}`).then((res) => {
 			let detail = {
@@ -123,44 +129,13 @@
 </script>
 
 {#if error}
-	<div
-		class="relative rounded border border-red-400 bg-red-100 px-4 py-2 text-red-700"
-		role="alert"
-	>
-		<strong class="font-bold">Error:</strong>
-		<span class="block sm:inline">{error}</span>
-		<!-- svelte-ignore a11y-click-events-have-key-events -->
-		<!-- svelte-ignore a11y-no-static-element-interactions -->
-		<span class="absolute bottom-0 right-0 top-0 px-4 py-3" on:click={() => (error = null)}>
-			<svg
-				class="h-6 w-6 fill-current text-red-500"
-				role="button"
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 20 20"
-			>
-				<title>Close</title>
-				<path
-					d="M14.348 14.849c-.469.469-1.229.469-1.697 0L10 11.819l-2.651 3.029c-.469.469-1.228.469-1.697 0-.469-.469-.469-1.228 0-1.697l2.756-3.15L5.652 5.151c-.469-.469-.469-1.229 0-1.697.469-.469 1.228-.469 1.697 0l3.65 4.17 3.65-4.17c.469-.469 1.228-.469 1.697 0 .469.469.469 1.228 0 1.697l-2.756 3.15 2.756 3.15c.469.469.469 1.228 0 1.697z"
-				/>
-			</svg>
-		</span>
-	</div>
+	<ErrorAlert message={error} on:clearError={ClearError} />
 {/if}
 <h3 class="mb-4 text-center text-2xl">Tipos de Cajas</h3>
 <div class="flex justify-center">
 	<label class="input input-bordered flex items-center gap-2">
 		<input type="text" class="grow" placeholder="Search" on:change={search} />
-		<svg
-			xmlns="http://www.w3.org/2000/svg"
-			viewBox="0 0 16 16"
-			fill="currentColor"
-			class="h-4 w-4 opacity-70"
-			><path
-				fill-rule="evenodd"
-				d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
-				clip-rule="evenodd"
-			/></svg
-		>
+		<SearchIcon />
 	</label>
 </div>
 {#if openAlert}
@@ -189,37 +164,17 @@
 					<th class="text-center text-lg">
 						<div class="flex items-center">
 							ID
-							<button on:click={() => sortData('id')}
-								><svg
-									class="ms-1.5 h-3 w-3"
-									aria-hidden="true"
-									xmlns="http://www.w3.org/2000/svg"
-									fill="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
-									/>
-								</svg></button
-							>
+							<button on:click={() => sortData('id')}>
+								<SortIcon />
+							</button>
 						</div>
 					</th>
 					<th class="text-center text-lg">
 						<div class="flex items-center justify-center">
 							Descripcion
-							<button on:click={() => sortData('t_type_desc')}
-								><svg
-									class="ms-1.5 h-3 w-3"
-									aria-hidden="true"
-									xmlns="http://www.w3.org/2000/svg"
-									fill="currentColor"
-									viewBox="0 0 24 24"
-								>
-									<path
-										d="M8.574 11.024h6.852a2.075 2.075 0 0 0 1.847-1.086 1.9 1.9 0 0 0-.11-1.986L13.736 2.9a2.122 2.122 0 0 0-3.472 0L6.837 7.952a1.9 1.9 0 0 0-.11 1.986 2.074 2.074 0 0 0 1.847 1.086Zm6.852 1.952H8.574a2.072 2.072 0 0 0-1.847 1.087 1.9 1.9 0 0 0 .11 1.985l3.426 5.05a2.123 2.123 0 0 0 3.472 0l3.427-5.05a1.9 1.9 0 0 0 .11-1.985 2.074 2.074 0 0 0-1.846-1.087Z"
-									/>
-								</svg></button
-							>
+							<button on:click={() => sortData('t_type_desc')}>
+								<SortIcon />
+							</button>
 						</div>
 					</th>
 					<th><button class="btn btn-primary" on:click={() => (_new = true)}>Agregar</button></th>
@@ -237,10 +192,10 @@
 							<button class="btn btn-warning" on:click={() => openEditModal(t_type)}>Editar</button>
 						</td>
 						<td>
-							<button class="btn btn-secondary" on:click={() => OpenDeleteModal(t_type.id)}
-								>Eliminar</button
-							></td
-						>
+							<button class="btn btn-secondary" on:click={() => OpenDeleteModal(t_type.id)}>
+								Eliminar
+							</button>
+						</td>
 					</tr>
 				{/each}
 			</tbody>

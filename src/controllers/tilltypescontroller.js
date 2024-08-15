@@ -20,10 +20,11 @@ const getAllTillsTypes = async (req, res) => {
             where: { deletedAt: null }, 
         });
         const paginatedData = await paginateAndSortResults(req,consult, prisma.tillsTypes, Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
+        // res.status(500).json('No se pudieron obtener registros.');
         res.status(200).json(paginatedData);;
     } catch (error) {
         console.log('para mostrar error',error)
-        res.status(500).json({ error: 'No se pudieron obtener registros.' });
+        res.status(500).json( 'No se pudieron obtener registros.' );
     }
   };
 
@@ -90,7 +91,7 @@ const deleteTillsType = async (req,res)=>{
         await softDelete(prisma.tillsTypes, { id: typeId });
         res.json({ message: 'Registro eliminado correctamente.' });
       } catch (error) {
-        res.status(500).json({ error: 'No se pudo eliminar el registro.' });
+        res.status(500).json('No se pudo eliminar el registro.' );
       }
 }
 
@@ -117,7 +118,7 @@ const searchTillsTypes = async (req, res) => {
 
         res.json(paginatedData);
     } catch (error) {
-        res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });
+        res.status(500).json('No se pudieron obtener los tipos de tills.');
     }
   };
 

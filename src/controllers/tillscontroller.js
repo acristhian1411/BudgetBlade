@@ -34,7 +34,6 @@ const getAllTills = async(req,res)=>{
             }
         }
         const paginatedData = await paginateAndSortResults(req,types,prisma.tills,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
-        // const paginatedData = paginateAndSortResults(req,tillsTypes, Number(page), Number(pageSize), sortBy, sortOrder);        
         res.json(paginatedData);
     } catch (error) {
         console.log(error)
@@ -114,7 +113,7 @@ const searchTills = async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });
     }
-  };
+};
 
 
 export {
@@ -124,4 +123,4 @@ export {
     deleteTills,
     showTills,
     searchTills
-  };
+};
