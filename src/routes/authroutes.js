@@ -10,7 +10,7 @@ import { addRefreshTokenToWhitelist,
   revokeTokens } from '../controllers/authcontroller.js';
 import { findUserByEmail,findUserByUsername, createUserByEmailAndPassword } from '../controllers/usercontroller.js';
 import hashToken from '../utilities/hashToken.js';
-import { j } from '../../svelteUI/build/server/chunks/index-q5FEf9Bi.js';
+
 // const { hashToken } = require('../../utils/hashToken');
 const router = express.Router();
 

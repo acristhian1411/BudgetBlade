@@ -1,6 +1,8 @@
 <script>
 	// @ts-nocheck
 	import { onMount } from 'svelte';
+	import { isLoggedIn, getToken} from '../../services/authservice'
+	import {goto} from '$app/navigation';
 	import axios from 'axios';
 	import Pagination from '$lib/utilities/pagination.svelte';
 	import DeleteModal from '$lib/utilities/delete_modal.svelte';
@@ -36,9 +38,15 @@
 	}
 
 	async function fetchData(page = current_page, rows = items_per_page) {
+		let token = getToken();
+		let config = {
+			headers: {
+				authorization: `token: ${token}`,
+			},
+		}
 		axios
 			// .get('/api/persontypes')
-			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`)
+			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`,config)
 			.then((response) => {
 				data = response.data.results;
 				current_page = response.data.currentPage;
@@ -125,6 +133,9 @@
 		fetchData(1, items_per_page);
 	}
 	onMount(async () => {
+		if(!isLoggedIn()){
+			goto('/login');
+		}
 		fetchData();
 	});
 </script>

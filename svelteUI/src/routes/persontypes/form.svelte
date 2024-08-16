@@ -1,6 +1,7 @@
 <script>
 	// @ts-nocheck
 	import axios from 'axios';
+	import {getToken} from '../../services/authservice'
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
@@ -10,6 +11,12 @@
 	let p_type_desc = '';
 	export let edit;
 	export let item;
+	let token = getToken();
+	let config = {
+		headers: {
+			authorization: `token: ${token}`,
+		},
+	}
 	function close() {
 		dispatch('close');
 	}
@@ -26,10 +33,11 @@
 	});
 	// http://127.0.0.1:5173/tilltypes
 	function handleCreateObject() {
+		
 		axios
 			.post(`${PUBLIC_APP_URL}/api/persontypes`, {
 				p_type_desc
-			})
+			},config)
 			.then((res) => {
 				let detail = {
 					detail: {
@@ -45,7 +53,7 @@
 		axios
 			.put(`${PUBLIC_APP_URL}/api/persontypes/${id}`, {
 				p_type_desc
-			})
+			},config)
 			.then((res) => {
 				let detail = {
 					detail: {
