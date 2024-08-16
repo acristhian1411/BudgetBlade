@@ -7,15 +7,15 @@ import {
   showTillsType,
   searchTillsTypes
 } from '../controllers/tilltypescontroller.js';
-
+import {verifyToken} from '../controllers/authcontroller.js'
 const router = express.Router();
 
-router.get('/tillstypes', getAllTillsTypes);
-router.post('/tillstypes', createTillsType);
-router.put('/tillstypes/:id', updateTillsType);
-router.delete('/tillstypes/:id', deleteTillsType);
-router.get('/tillstypes/:id', showTillsType);
-router.get('/searchtillstypes', searchTillsTypes);
+router.get('/tillstypes',verifyToken, getAllTillsTypes);
+router.post('/tillstypes',verifyToken, createTillsType);
+router.put('/tillstypes/:id',verifyToken, updateTillsType);
+router.delete('/tillstypes/:id',verifyToken, deleteTillsType);
+router.get('/tillstypes/:id',verifyToken,showTillsType);
+router.get('/searchtillstypes',verifyToken,searchTillsTypes);
 
 /**
  * @swagger

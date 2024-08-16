@@ -2,6 +2,14 @@
 import bcrypt from 'bcrypt';
 import {prisma } from '../utilities/db.js'
 
+function findUserByUsername(username) {
+  return prisma.user.findFirst({
+    where: {
+      username,
+    },
+  });
+}
+
 function findUserByEmail(email) {
   return prisma.user.findFirst({
     where: {
@@ -28,6 +36,7 @@ function findUserById(id) {
 // Exporta las funciones necesarias
 export {
   findUserByEmail,
+  findUserByUsername,
   findUserById,
   createUserByEmailAndPassword
 };

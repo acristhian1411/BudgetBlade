@@ -2,13 +2,15 @@
 import express from 'express';
 import { v4 as uuidv4 } from 'uuid';
 import { generateTokens } from '../utilities/jwt.js';
+import jsonwebtoken from 'jsonwebtoken'
 import bcrypt from 'bcrypt';
 import { addRefreshTokenToWhitelist,
   findRefreshTokenById,
   deleteRefreshToken,
   revokeTokens } from '../controllers/authcontroller.js';
-import { findUserByEmail, createUserByEmailAndPassword } from '../controllers/usercontroller.js';
+import { findUserByEmail,findUserByUsername, createUserByEmailAndPassword } from '../controllers/usercontroller.js';
 import hashToken from '../utilities/hashToken.js';
+import { j } from '../../svelteUI/build/server/chunks/index-q5FEf9Bi.js';
 // const { hashToken } = require('../../utils/hashToken');
 const router = express.Router();
 
@@ -41,39 +43,50 @@ router.post('/register', async (req, res, next) => {
   }
 });
 
-router.post('/login', async (req, res, next) => {
-    try {
-      const { email, password } = req.body;
-      if (!email || !password) {
-        res.status(400);
-        throw new Error('You must provide an email and a password.');
-      }
-  
+
+router.post('/login',async(req,res)=>{
+  const {email,password}=req.body
       const existingUser = await findUserByEmail(email);
-  
-      if (!existingUser) {
-        res.status(403);
-        throw new Error('Invalid login credentials.');
+      if(existingUser && await bcrypt.compare(password,existingUser.password)){
+        const token = jsonwebtoken.sign({userId:existingUser.id,person_id:existingUser.person_id, email:existingUser.email},process.env.JWT_ACCESS_SECRET,{expiresIn:'30m'})
+        return res.json({token})
       }
+      res.status(401).json({message:'Invalid email or password'})
+})
+
+// router.post('/login', async (req, res, next) => {
+//     try {
+//       const { email, password } = req.body;
+//       if (!email || !password) {
+//         res.status(400);
+//         throw new Error('You must provide an email and a password.');
+//       }
   
-      const validPassword = await bcrypt.compare(password, existingUser.password);
-      if (!validPassword) {
-        res.status(403);
-        throw new Error('Invalid login credentials.');
-      }
+//       const existingUser = await findUserByEmail(email);
   
-      const jti = uuidv4();
-      const { accessToken, refreshToken } = generateTokens(existingUser, jti);
-      await addRefreshTokenToWhitelist({ jti, refreshToken, userId: existingUser.id });
+//       if (!existingUser) {
+//         res.status(403);
+//         throw new Error('Invalid login credentials.');
+//       }
   
-      res.json({
-        accessToken,
-        refreshToken
-      });
-    } catch (err) {
-      next(err);
-    }
-  });
+//       const validPassword = await bcrypt.compare(password, existingUser.password);
+//       if (!validPassword) {
+//         res.status(403);
+//         throw new Error('Invalid login credentials.');
+//       }
+  
+//       const jti = uuidv4();
+//       const { accessToken, refreshToken } = generateTokens(existingUser, jti);
+//       await addRefreshTokenToWhitelist({ jti, refreshToken, userId: existingUser.id });
+  
+//       res.json({
+//         accessToken,
+//         refreshToken
+//       });
+//     } catch (err) {
+//       next(err);
+//     }
+//   });
 
   router.post('/refreshToken', async (req, res, next) => {
     try {

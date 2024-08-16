@@ -4,6 +4,7 @@ import {handler} from '../svelteUI/build/handler.js'
 import swaggerJSDoc  from 'swagger-jsdoc'
 import SwaggerUI from 'swagger-ui-express'
 import listEndpoints from "express-list-endpoints";
+// routes
 import tilltypesroutes from './routes/tilltypesroutes.js'
 import persontypesroutes from './routes/persontypesroutes.js'
 import tillsroutes from './routes/tillsroutes.js'

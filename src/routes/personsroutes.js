@@ -10,6 +10,7 @@ import {
 } from '../controllers/personController.js';
 import multer from 'multer';
 import path from 'path';
+import {verifyToken} from '../controllers/authcontroller.js'
 
 const router = express.Router();
 // WARNING esto aparentemente no funciona desde svelte compilado pero si cuando se usan por separado
@@ -43,13 +44,13 @@ router.put('/upload_avatar', upload.single('file'), async (req, res) => {
     res.status(500).json({ message: error });
   }
 });
-router.get('/persons', getAllPersons);
-router.post('/persons', createPersons);
-router.put('/persons/:id', updatePersons);
-router.delete('/persons/:id', deletePersons);
-router.get('/persons/:id', showPersons);
-router.get('/searchpersons', searchPersons);
-router.get('/personTypesList/:id', personTypesList);
+router.get('/persons',verifyToken, getAllPersons);
+router.post('/persons',verifyToken, createPersons);
+router.put('/persons/:id',verifyToken, updatePersons);
+router.delete('/persons/:id',verifyToken, deletePersons);
+router.get('/persons/:id',verifyToken, showPersons);
+router.get('/searchpersons',verifyToken, searchPersons);
+router.get('/personTypesList/:id',verifyToken, personTypesList);
 
 /**
  * @swagger

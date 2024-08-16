@@ -7,14 +7,15 @@ import {
   showTills,
   searchTills
 } from '../controllers/tillscontroller.js';
+import {verifyToken} from '../controllers/authcontroller.js'
 
 const router = express.Router();
-router.get('/tills', getAllTills);
-router.post('/tills', createTills);
-router.put('/tills/:id', updateTills);
-router.delete('/tills/:id', deleteTills);
-router.get('/tills/:id', showTills);
-router.get('/searchtills', searchTills);
+router.get('/tills',verifyToken, getAllTills);
+router.post('/tills',verifyToken, createTills);
+router.put('/tills/:id',verifyToken, updateTills);
+router.delete('/tills/:id',verifyToken, deleteTills);
+router.get('/tills/:id',verifyToken, showTills);
+router.get('/searchtills',verifyToken, searchTills);
 
 /**
  * @swagger

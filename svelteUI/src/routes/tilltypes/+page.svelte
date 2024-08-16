@@ -1,6 +1,7 @@
 <script>
 	// @ts-nocheck
 	import { onMount } from 'svelte';
+	import {isLoggedIn} from '../../services/authservice'
 	import axios from 'axios';
 	import Pagination from '$lib/utilities/pagination.svelte';
 	import DeleteModal from '$lib/utilities/delete_modal.svelte';
@@ -11,6 +12,8 @@
 	import SortIcon from '../../components/Icons/SortIcon.svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
 	import ErrorAlert from '../../components/Alerts/ErrorAlert.svelte';
+	import {goto} from '$app/navigation';
+
 	let data = [];
 	let error = null;
 	let openAlert = false;
@@ -36,9 +39,17 @@
 	}
 
 	async function fetchData(page = current_page, rows = items_per_page) {
+		const token = localStorage.getItem('token');
+
+		// Configurar los encabezados de la solicitud
+		const config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		axios
 			// .get('/api/tillstypes')
-			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`)
+			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`, config)
 			.then((response) => {
 				data = response.data.results;
 				current_page = response.data.currentPage;
@@ -124,7 +135,11 @@
 		fetchData(1, items_per_page);
 	}
 	onMount(async () => {
-		fetchData();
+		if (!isLoggedIn()) {
+            goto('/login');
+        }else{
+			fetchData();
+		}
 	});
 </script>
 

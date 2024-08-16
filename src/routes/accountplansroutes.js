@@ -8,16 +8,17 @@ import {
   searchAccountPlans,
   findByCode
 } from '../controllers/accountplanscontroller.js';
+import {verifyToken} from '../controllers/authcontroller.js'
 
 const router = express.Router();
 
-router.get('/accountplans', getAllAccountPlans);
-router.post('/accountplans', createAccountPlans);
-router.put('/accountplans/:id', updateAccountPlans);
-router.delete('/accountplans/:id', deleteAccountPlans);
-router.get('/accountplans/:id', showAccountPlans);
-router.get('/searchaccountplans', searchAccountPlans);
-router.get('/findAccountplansByCode', findByCode);
+router.get('/accountplans',verifyToken, getAllAccountPlans);
+router.post('/accountplans',verifyToken, createAccountPlans);
+router.put('/accountplans/:id',verifyToken, updateAccountPlans);
+router.delete('/accountplans/:id',verifyToken, deleteAccountPlans);
+router.get('/accountplans/:id',verifyToken, showAccountPlans);
+router.get('/searchaccountplans',verifyToken, searchAccountPlans);
+router.get('/findAccountplansByCode',verifyToken, findByCode);
 
 /**
  * @swagger

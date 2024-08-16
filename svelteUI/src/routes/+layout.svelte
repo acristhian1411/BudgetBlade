@@ -1,5 +1,6 @@
 <script>
 	import '../app.pcss';
+	import {logout} from '../services/authservice.js'
 	import BoxesIcon from '../components/Icons/BoxesIcon.svelte';
 	import ChartIcon from '../components/Icons/ChartIcon.svelte';
 </script>
@@ -123,6 +124,14 @@
 					<BoxesIcon/>
 					<span class="ml-3 flex-1 whitespace-nowrap">Cajas</span>
 				</a>
+			</li>
+			<li>
+				<span class="group flex items-center rounded-lg p-2 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700">
+					<BoxesIcon/>
+					<!-- svelte-ignore a11y-click-events-have-key-events -->
+					<!-- svelte-ignore a11y-no-static-element-interactions -->
+					<span class="ml-3 flex-1 whitespace-nowrap" on:click={()=>logout()}>Salir</span>
+				</span>
 			</li>
 		</ul>
 	</div>

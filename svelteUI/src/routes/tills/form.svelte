@@ -1,6 +1,7 @@
 <script>
 	// @ts-nocheck
 	import axios from 'axios';
+	import {isLoggedIn, getUserData} from '../../services/authservice.js'
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
@@ -19,8 +20,10 @@
 	let t_type;
 	let t_type_desc = '';
 	let t_types = [];
+	let user;
 	export let edit;
 	export let item;
+
 	function close() {
 		dispatch('close');
 	}
@@ -30,26 +33,51 @@
 	}
 
 	async function fetchPersons() {
-		axios.get(`${PUBLIC_APP_URL}/api/persons`).then((res) => {
+		const token = localStorage.getItem('token');
+    	// Configurar los encabezados de la solicitud
+		const config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
+		axios.get(`${PUBLIC_APP_URL}/api/persons`,config).then((res) => {
 			persons = res.data.results;
+			
 			if (edit == true) {
 				person = res.data.results.find((account) => account.person_id == item.person_id);
+				person_name = person.person_fname+' '+person.person_lname;
+			}else{
+				person = res.data.results.find((account) => account.person_id == user.person_id);
+				person_id = person.person_id;
 				person_name = person.person_fname+' '+person.person_lname;
 			}
 		});
 	}
 
     async function fetchTillsTypes() {
-		axios.get(`${PUBLIC_APP_URL}/api/tillstypes`).then((res) => {
+		const token = localStorage.getItem('token');
+
+    	// Configurar los encabezados de la solicitud
+		const config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
+		axios.get(`${PUBLIC_APP_URL}/api/tillstypes`,config).then((res) => {
 			t_types = res.data.results;
 			if (edit == true) {
-				t_type = res.data.results.find((account) => account.id == item.id);
+				console.log('item', item.t_type_id)
+				console.log(res.data.results);
+				t_type = res.data.results.find((account) => account.id == item.t_type_id);
+				console.log('t_type', t_type)
 				t_type_desc = t_type.t_type_desc;
 			}
 		});
 	}
 
 	onMount(() => {
+		user = getUserData();
+		console.log('user', user);
 		fetchPersons();
 		fetchTillsTypes();
 		if (edit == true) {
@@ -102,11 +130,12 @@
 	}
 
 	function handleChangeSelect(event,array,label) {
-		console.log(event.target.value)
+		console.log('event', event);
+		console.log('array', event.target.value)
 		[label] = event.target.options[event.target.selectedIndex].text;
-		if(array = 'person'){
+		if(array == 'person'){
 			person = persons.find((person) => person.person_id == event.target.value);
-		}else if(array = 't_type'){
+		}else if(array == 't_type'){
 			t_type = t_types.find((ttype) => ttype.id == event.target.value);
 		}
     }

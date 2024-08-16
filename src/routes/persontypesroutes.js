@@ -7,15 +7,16 @@ import {
   showPersonType,
   searchPersonTypes
 } from '../controllers/persontypescontroller.js';
+import {verifyToken} from '../controllers/authcontroller.js'
 
 const router = express.Router();
 
-router.get('/persontypes', getAllPersonTypes);
-router.post('/persontypes', createPersonType);
-router.put('/persontypes/:id', updatePersonType);
-router.delete('/persontypes/:id', deletePersonType);
-router.get('/persontypes/:id', showPersonType);
-router.get('/searchpersontypes', searchPersonTypes);
+router.get('/persontypes',verifyToken, getAllPersonTypes);
+router.post('/persontypes',verifyToken, createPersonType);
+router.put('/persontypes/:id',verifyToken, updatePersonType);
+router.delete('/persontypes/:id',verifyToken, deletePersonType);
+router.get('/persontypes/:id',verifyToken, showPersonType);
+router.get('/searchpersontypes',verifyToken, searchPersonTypes);
 
 /**
  * @swagger
