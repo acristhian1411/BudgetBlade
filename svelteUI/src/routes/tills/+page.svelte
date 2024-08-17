@@ -13,7 +13,6 @@
 	import ErrorAlert from '../../components/Alerts/ErrorAlert.svelte';
 	import Form from './form.svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
-	import { get } from 'http';
 
 	let data = [];
 	let error = null;
