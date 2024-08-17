@@ -5,7 +5,8 @@ import {
   updateTills,
   deleteTills,
   showTills,
-  searchTills
+  searchTills,
+  showTillsByPerson
 } from '../controllers/tillscontroller.js';
 import {verifyToken} from '../controllers/authcontroller.js'
 
@@ -15,6 +16,7 @@ router.post('/tills',verifyToken, createTills);
 router.put('/tills/:id',verifyToken, updateTills);
 router.delete('/tills/:id',verifyToken, deleteTills);
 router.get('/tills/:id',verifyToken, showTills);
+router.get('/tills/:id/person',verifyToken, showTillsByPerson);
 router.get('/searchtills',verifyToken, searchTills);
 
 /**

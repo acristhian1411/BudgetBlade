@@ -2,7 +2,7 @@
 	// @ts-nocheck
 	import { onMount } from 'svelte';
 	import axios from 'axios';
-	import {isLoggedIn, getToken} from '../../services/authservice.js'
+	import {isLoggedIn, getToken,getUserData} from '../../services/authservice.js'
 	import {goto} from '$app/navigation';
 	import Pagination from '$lib/utilities/pagination.svelte';
 	import DeleteModal from '$lib/utilities/delete_modal.svelte';
@@ -31,6 +31,7 @@
 	let total_items;
 	let current_page = 1;
 	let items_per_page = '10';
+	let user;
 	let url = `${PUBLIC_APP_URL}/api/tills?`;
 
 	function updateData() {
@@ -145,6 +146,8 @@
 		if (!isLoggedIn()) {
             goto('/login');
         }else{
+			user = getUserData();
+			url = `${PUBLIC_APP_URL}/api/tills/${user.person_id}/person?`;
 			fetchData();
 		}
 	});

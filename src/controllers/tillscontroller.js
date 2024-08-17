@@ -68,6 +68,49 @@ const showTills = async (req,res)=>{
     res.json(type)
 }
 
+const showTillsByPerson = async (req,res)=>{
+
+    try {
+        const { page = 1, pageSize = 10, sortBy = 'id', sortOrder = 'asc' } = req.query;        
+        const types = {
+            where: { 
+                deletedAt: null,
+                person_id:parseInt(req.params.id)
+            },
+            select:{
+                id:true,
+                TILL_NAME:true,
+                TILL_ACCOUNT_NUMBER:true,
+                t_type_id:true,
+                person_id:true,
+                person:{
+                    select:{
+                        person_idnumber:true,
+                        person_fname:true,
+                        person_lname:true
+                    }
+                },
+                tilltype:{
+                    select:{
+                        t_type_desc:true
+                    }
+                },
+                TillDetails:{
+                    select:{
+                        till_det_amount:true
+                    }
+                }
+            }
+        }
+        const paginatedData = await paginateAndSortResults(req,types,prisma.tills,  Number(page), Number(pageSize), req.query.sortBy, req.query.sortOrder);
+        res.json(paginatedData);
+    } catch (error) {
+        console.log(error)
+        res.status(500).json( 'No se pudieron obtener registros.' );
+    }
+
+}
+
 const updateTills = async (req,res)=>{
     try {
         const type = await prisma.tills.update({
@@ -126,5 +169,6 @@ export {
     updateTills,
     deleteTills,
     showTills,
-    searchTills
+    searchTills,
+    showTillsByPerson
 };
