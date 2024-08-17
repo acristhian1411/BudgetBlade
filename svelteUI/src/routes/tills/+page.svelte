@@ -2,7 +2,7 @@
 	// @ts-nocheck
 	import { onMount } from 'svelte';
 	import axios from 'axios';
-	import {isLoggedIn} from '../../services/authservice.js'
+	import {isLoggedIn, getToken} from '../../services/authservice.js'
 	import {goto} from '$app/navigation';
 	import Pagination from '$lib/utilities/pagination.svelte';
 	import DeleteModal from '$lib/utilities/delete_modal.svelte';
@@ -13,6 +13,7 @@
 	import ErrorAlert from '../../components/Alerts/ErrorAlert.svelte';
 	import Form from './form.svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
+	import { get } from 'http';
 
 	let data = [];
 	let error = null;
@@ -39,9 +40,8 @@
 	}
 
 	async function fetchData(page = current_page, rows = items_per_page) {
-		const token = localStorage.getItem('token');
+		const token = getToken();
 
-    	// Configurar los encabezados de la solicitud
 		const config = {
 			headers: {
 				'authorization': `token: ${token}`
@@ -75,6 +75,14 @@
 	}
 
 	function deleteRecord() {
+		const token = getToken();
+
+    	// Configurar los encabezados de la solicitud
+		const config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		axios.delete(`${PUBLIC_APP_URL}/api/tills/${id}`).then((res) => {
 			let detail = {
 				detail: {

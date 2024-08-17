@@ -75,7 +75,14 @@
 		error = null;
 	}
 	function deleteRecord() {
-		axios.delete(`${PUBLIC_APP_URL}/api/tillstypes/${id}`).then((res) => {
+		const token = localStorage.getItem('token');
+
+		const config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
+		axios.delete(`${PUBLIC_APP_URL}/api/tillstypes/${id}`, config).then((res) => {
 			let detail = {
 				detail: {
 					type: 'delete',

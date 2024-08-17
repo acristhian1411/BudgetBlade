@@ -2,6 +2,7 @@
 	// @ts-nocheck
 	import axios from 'axios';
 	import { onMount } from 'svelte';
+	import {getToken} from '../../services/authservice'
 	import { createEventDispatcher } from 'svelte';
 	import {fail} from '@sveltejs/kit';
 	import { PUBLIC_APP_URL } from '$env/static/public';
@@ -30,6 +31,8 @@
 	let user_password = '';
 	export let edit;
 	export let item;
+	let token;
+	let config;
 	let formData = new FormData();
 	function close() {
 		dispatch('close');
@@ -58,7 +61,7 @@
 	}
 
 	function fetchPersonTypes() {
-		axios.get(`${PUBLIC_APP_URL}/api/persontypes`).then((res) => {
+		axios.get(`${PUBLIC_APP_URL}/api/persontypes`, config).then((res) => {
 			person_types = res.data.results;
 			if (edit == true) {
 				p_types_selected = res.data.results.find((p_type) => p_type.id == item.p_type_id);
@@ -67,6 +70,12 @@
 	}
 
 	onMount(() => {
+		token = getToken();
+		config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		fetchPersonTypes();
 		if (edit == true) {
 			person_id = item.person_id;
@@ -97,13 +106,14 @@
 				birthDate,
 				p_type_id: p_types_selected.id,
 				person_photo: newFile.name,
-			})
+			}, config)
 			.then((res) => {
 
 				const data = createFormData(formData);
 				const response =  fetch(`${PUBLIC_APP_URL}/api/upload_avatar`, {
 				method: 'PUT',
 				body: data,
+				config
 				});
 				const result =  response.json();
 				console.log(result);
@@ -127,12 +137,13 @@
 				birthDate,
 				p_type_id: p_types_selected.id,
 				person_photo: newFile.name,
-			})
+			}, config)
 			.then((res) => {
 				const data = createFormData(formData);
 				const response =  fetch(`${PUBLIC_APP_URL}/api/upload_avatar`, {
 				method: 'PUT',
 				body: data,
+				config
 				});
 				const result =  response.json();
 				console.log(result);
@@ -147,8 +158,6 @@
 			});
 	}
 	async function UploadPhoto(){
-		// person_photo = event.target.files[0];
-		// console.log(event.target.files)
 		if (!(files.accepted[0] instanceof File)) {
     		console.log('Seleccione una imagen válida');
   		}

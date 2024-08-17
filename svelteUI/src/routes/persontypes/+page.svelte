@@ -73,7 +73,13 @@
 	}
 
 	function deleteRecord() {
-		axios.delete(`${PUBLIC_APP_URL}/api/persontypes/${id}`).then((res) => {
+		let token = getToken();
+		let config = {
+			headers: {
+				authorization: `token: ${token}`,
+			},
+		}
+		axios.delete(`${PUBLIC_APP_URL}/api/persontypes/${id}`, config).then((res) => {
 			let detail = {
 				detail: {
 					type: 'delete',

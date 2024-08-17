@@ -1,7 +1,7 @@
 import { goto } from "$app/navigation";
 // import  jsonwebtoken from 'jsonwebtoken';
 import * as jose from 'jose';
-import { PUBLIC_JWT_SECRET } from '$env/static/public';
+// import { PUBLIC_JWT_SECRET } from '$env/static/public';
 
 export async function login(email, password) {
     const response = await fetch('http://localhost:3000/api/auth/login', {

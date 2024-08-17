@@ -1,6 +1,7 @@
 <script>
 	/** @type {import('./$types').PageData} */
 	import axios from 'axios';
+	import {getToken} from '../../../services/authservice'
 	import { onMount } from 'svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
 
@@ -10,8 +11,14 @@
 	export let data;
 
 	async function fetchData() {
+		const token = getToken();
+		let config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		axios
-			.get(`${PUBLIC_APP_URL}/api/persontypes/${data.id}`)
+			.get(`${PUBLIC_APP_URL}/api/persontypes/${data.id}`, config)
 			.then((response) => {
 				tilltype = response.data;
 			})

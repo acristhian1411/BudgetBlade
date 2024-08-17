@@ -1,6 +1,7 @@
 <script>
 	/** @type {import('./$types').PageData} */
 	import axios from 'axios';
+	import {getToken} from '../../../services/authservice'
 	import { onMount } from 'svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
 	let error;
@@ -9,15 +10,20 @@
 	export let data;
 
 	async function fetchData() {
+		const token = getToken();
+		let config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		axios
-			.get(`${PUBLIC_APP_URL}/api/accountplans/${data.id}`)
+			.get(`${PUBLIC_APP_URL}/api/accountplans/${data.id}`, config)
 			.then((response) => {
 				accountplan = response.data;
 			})
 			.catch((err) => {
 				error = err;
 			});
-		// })
 	}
 
 	onMount(() => {

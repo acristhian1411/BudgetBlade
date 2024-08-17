@@ -2,6 +2,7 @@
 	// @ts-nocheck
 	import { onMount } from 'svelte';
 	import axios from 'axios';
+	import {getToken} from '../../services/authservice'
 	import Pagination from '$lib/utilities/pagination.svelte';
 	import DeleteModal from '$lib/utilities/delete_modal.svelte';
 	import Alert from '$lib/utilities/alert.svelte';
@@ -34,9 +35,15 @@
 	}
 
 	async function fetchData(page = current_page, rows = items_per_page) {
+		const token = getToken();
+		let config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		axios
 			// .get('/api/accountplans')
-			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`)
+			.get(`${url}sortBy=${orderBy}&sortOrder=${order}&page=${page}&pageSize=${rows}`, config)
 			.then((response) => {
 				data = response.data.results;
 				current_page = response.data.currentPage;
@@ -44,7 +51,7 @@
 				total_pages = response.data.totalPages;
 			})
 			.catch((err) => {
-				error = err;
+				error = err.request.response;
 			});
 	}
 

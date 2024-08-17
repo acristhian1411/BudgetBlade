@@ -1,7 +1,7 @@
 <script>
 	// @ts-nocheck
 	import axios from 'axios';
-	import {isLoggedIn, getUserData} from '../../services/authservice.js'
+	import {isLoggedIn, getUserData, getToken} from '../../services/authservice.js'
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
@@ -21,6 +21,8 @@
 	let t_type_desc = '';
 	let t_types = [];
 	let user;
+	let token;
+	let config;
 	export let edit;
 	export let item;
 
@@ -33,13 +35,7 @@
 	}
 
 	async function fetchPersons() {
-		const token = localStorage.getItem('token');
-    	// Configurar los encabezados de la solicitud
-		const config = {
-			headers: {
-				'authorization': `token: ${token}`
-			}
-		};
+		
 		axios.get(`${PUBLIC_APP_URL}/api/persons`,config).then((res) => {
 			persons = res.data.results;
 			
@@ -55,14 +51,7 @@
 	}
 
     async function fetchTillsTypes() {
-		const token = localStorage.getItem('token');
-
-    	// Configurar los encabezados de la solicitud
-		const config = {
-			headers: {
-				'authorization': `token: ${token}`
-			}
-		};
+		
 		axios.get(`${PUBLIC_APP_URL}/api/tillstypes`,config).then((res) => {
 			t_types = res.data.results;
 			if (edit == true) {
@@ -76,6 +65,12 @@
 	}
 
 	onMount(() => {
+		token = getToken();
+		config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		user = getUserData();
 		console.log('user', user);
 		fetchPersons();
@@ -95,7 +90,7 @@
 				TILL_ACCOUNT_NUMBER,
 				t_type_id: t_type.id,
 				person_id: person.id
-			})
+			}, config)
 			.then((res) => {
 				let detail = {
 					detail: {
@@ -113,7 +108,7 @@
 				TILL_NAME,
 				account_code,
 				person_id: person.id
-			})
+			}, config)
 			.then((res) => {
 				let detail = {
 					detail: {

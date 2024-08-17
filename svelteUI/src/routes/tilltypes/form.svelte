@@ -2,12 +2,15 @@
 	// @ts-nocheck
 	import axios from 'axios';
 	import { onMount } from 'svelte';
+	import {getToken} from '../../services/authservice'
 	import { createEventDispatcher } from 'svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
 
 	const dispatch = createEventDispatcher();
 	let id = 0;
 	let t_type_desc = '';
+	let token;
+	let config;
 	export let edit;
 	export let item;
 	function close() {
@@ -19,6 +22,12 @@
 	}
 
 	onMount(() => {
+		token = getToken();
+		config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		if (edit == true) {
 			id = item.id;
 			t_type_desc = item.t_type_desc;
@@ -29,7 +38,7 @@
 		axios
 			.post(`${PUBLIC_APP_URL}/api/tillstypes`, {
 				t_type_desc
-			})
+			}, config)
 			.then((res) => {
 				let detail = {
 					detail: {
@@ -45,7 +54,7 @@
 		axios
 			.put(`${PUBLIC_APP_URL}/api/tillstypes/${id}`, {
 				t_type_desc
-			})
+			}, config)
 			.then((res) => {
 				let detail = {
 					detail: {

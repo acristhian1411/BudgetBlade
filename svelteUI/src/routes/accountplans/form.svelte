@@ -1,6 +1,7 @@
 <script>
 	// @ts-nocheck
 	import axios from 'axios';
+	import {getToken} from '../../services/authservice'
 	import { onMount } from 'svelte';
 	import { createEventDispatcher } from 'svelte';
 	import { PUBLIC_APP_URL } from '$env/static/public';
@@ -14,6 +15,8 @@
 	let account_p;
 	let account_pid_desc = '';
 	let account_parents = [];
+	let token;
+	let config;
 	export let edit;
 	export let item;
 	function close() {
@@ -25,7 +28,7 @@
 	}
 
 	async function fetchParents() {
-		axios.get(`${PUBLIC_APP_URL}/api/accountplans`).then((res) => {
+		axios.get(`${PUBLIC_APP_URL}/api/accountplans`, config).then((res) => {
 			account_parents = res.data.results;
 			if (edit == true) {
 				account_p = res.data.results.find((account) => account.id == item.account_pid);
@@ -35,6 +38,12 @@
 	}
 
 	onMount(() => {
+		token = getToken();
+		config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
 		fetchParents();
 		if (edit == true) {
 			id = item.id;
@@ -49,7 +58,7 @@
 				account_desc,
 				account_code,
 				account_pid: account_p.id
-			})
+			}, config)
 			.then((res) => {
 				let detail = {
 					detail: {
@@ -67,7 +76,7 @@
 				account_desc,
 				account_code,
 				account_pid: account_p.id
-			})
+			}, config)
 			.then((res) => {
 				let detail = {
 					detail: {
@@ -95,7 +104,7 @@
 			account != undefined && account.account_code.split('.')[1] != null
 				? account.account_code.split('.')[1]
 				: '0';
-		axios.get(`${PUBLIC_APP_URL}/api/findAccountplansByCode?p1=${p1}&p2=${p2}`).then((res) => {
+		axios.get(`${PUBLIC_APP_URL}/api/findAccountplansByCode?p1=${p1}&p2=${p2}`, config).then((res) => {
 			if (p1 != 0 && p2 == 0) {
 				if (res.data.results.length > 0) {
 					var valor = res.data.results.sort((a, b) => a.account_code.localeCompare(b.account_code));
