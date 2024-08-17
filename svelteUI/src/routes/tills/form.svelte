@@ -89,7 +89,7 @@
 				TILL_NAME,
 				TILL_ACCOUNT_NUMBER,
 				t_type_id: t_type.id,
-				person_id: person.id
+				person_id: person.person_id
 			}, config)
 			.then((res) => {
 				let detail = {
@@ -106,8 +106,9 @@
 		axios
 			.put(`${PUBLIC_APP_URL}/api/tills/${id}`, {
 				TILL_NAME,
-				account_code,
-				person_id: person.id
+				TILL_ACCOUNT_NUMBER,
+				t_type_id: t_type.id,
+				person_id: person.person_id
 			}, config)
 			.then((res) => {
 				let detail = {
@@ -125,13 +126,12 @@
 	}
 
 	function handleChangeSelect(event,array,label) {
-		console.log('event', event);
-		console.log('array', event.target.value)
 		[label] = event.target.options[event.target.selectedIndex].text;
+		let selectedOptionText = event.target.options[event.target.selectedIndex].text;
 		if(array == 'person'){
-			person = persons.find((person) => person.person_id == event.target.value);
+			person = persons.find((person) => (person.person_fname+' '+person.person_lname) == selectedOptionText);
 		}else if(array == 't_type'){
-			t_type = t_types.find((ttype) => ttype.id == event.target.value);
+			t_type = t_types.find((ttype) => ttype.t_type_desc == selectedOptionText);
 		}
     }
 </script>
