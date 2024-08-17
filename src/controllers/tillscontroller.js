@@ -37,7 +37,7 @@ const getAllTills = async(req,res)=>{
         res.json(paginatedData);
     } catch (error) {
         console.log(error)
-        res.status(500).json({ error: 'No se pudieron obtener registros.' });
+        res.status(500).json( 'No se pudieron obtener registros.' );
     }
 }
 const createTills = async (req, res) => {
@@ -69,14 +69,18 @@ const showTills = async (req,res)=>{
 }
 
 const updateTills = async (req,res)=>{
-    const type = await prisma.tills.update({
-        where:{
-            id:parseInt(req.params.id)
-        },
-        data: req.body
-        
-    })
-    res.json(type)
+    try {
+        const type = await prisma.tills.update({
+            where:{
+                id:parseInt(req.params.id)
+            },
+            data: req.body
+            
+        })
+        res.json(type)
+    } catch (error) {
+        res.status(500).json( 'No se pudieron actualizar registros.' );
+    }
 }
 
 const deleteTills = async (req,res)=>{
@@ -111,7 +115,7 @@ const searchTills = async (req, res) => {
         const paginatedData = await paginateAndSortResults(req,tills,prisma.tills, Number(page), Number(pageSize),sortBy, sortOrder);
         res.json(paginatedData);
     } catch (error) {
-        res.status(500).json({ error: 'No se pudieron obtener los tipos de tills.' });
+        res.status(500).json( 'No se pudieron obtener los tipos de tills.' );
     }
 };
 

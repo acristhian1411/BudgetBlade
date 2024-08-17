@@ -28,7 +28,7 @@ const getAllPersons = async(req,res)=>{
 }
 const createPersons = async (req,res)=>{
     const date = new Date(req.body.birthDate)
-    var photo = req.body.photo
+    var photo = req.body.person_photo
     console.log('photo',photo)
     const type = await prisma.persons.create({
         data:{
@@ -36,7 +36,8 @@ const createPersons = async (req,res)=>{
             person_lname:req.body.person_lname,
             birthDate: date,
             person_idnumber: req.body.person_idnumber,
-            p_type_id: parseInt(req.body.p_type_id)
+            p_type_id: parseInt(req.body.p_type_id),
+            person_photo: req.body.person_photo
         }
     })
     res.json(type)
