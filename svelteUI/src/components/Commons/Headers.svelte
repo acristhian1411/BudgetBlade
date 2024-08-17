@@ -1,3 +1,39 @@
+<script>
+	import { PUBLIC_APP_URL } from '$env/static/public';
+	import {getToken, getUserData} from '../../services/authservice.js'
+	import axios from 'axios';
+	import { onMount } from 'svelte';
+
+	let token;
+	let config;
+	let person
+	let user;
+	let person_photo = '';
+
+	function getPerson() {
+		axios
+			.get(`${PUBLIC_APP_URL}/api/persons/${user.person_id}`,config)
+			.then((res) => {
+				person = res.data;
+				person_photo = '/images/'+person.person_photo;
+			})
+			.catch((err) => {
+				console.log(err);
+			});
+	}
+
+	onMount(() => {
+		token = getToken();
+		user = getUserData();
+		config = {
+			headers: {
+				'authorization': `token: ${token}`
+			}
+		};
+		getPerson();
+	});
+</script>
+
 <nav
 	class="fixed top-0 z-50 w-full border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
 >
@@ -47,7 +83,7 @@
 							<!-- svelte-ignore a11y-img-redundant-alt -->
 							<img
 								class="h-8 w-8 rounded-full"
-								src="https://flowbite.com/docs/images/people/profile-picture-5.jpg"
+								src={person_photo}
 								alt="user photo"
 							/>
 						</button>
