@@ -186,19 +186,17 @@
 					<th class="text-center text-lg">
 						<div class="flex items-center">
 							ID
-							<button on:click={() => sortData('id')}
-								>								<SortIcon />
-							</button
-							>
+							<button on:click={() => sortData('id')}>								
+								<SortIcon />
+							</button>
 						</div>
 					</th>
 					<th class="text-center text-lg">
 						<div class="flex items-center justify-center">
 							Descripción
-							<button on:click={() => sortData('TILL_NAME')}
-							>								<SortIcon />
-							</button
-							>
+							<button on:click={() => sortData('TILL_NAME')}>								
+								<SortIcon />
+							</button>
 						</div>
 					</th>
 					<th class="text-center text-lg">
@@ -206,6 +204,14 @@
 							Código
 							<button on:click={() => sortData('TILL_ACCOUNT_NUMBER')}>
 								<SortIcon />	
+							</button>
+						</div>
+					</th>
+					<th>
+						<div class="flex items-center justify-center">
+							Tipo de caja
+							<button>
+								<SortIcon />
 							</button>
 						</div>
 					</th>
@@ -218,6 +224,7 @@
 						<td>{t_type.id}</td>
 						<td class="text-center">{t_type.TILL_NAME}</td>
 						<td class="text-center">{t_type.TILL_ACCOUNT_NUMBER}</td>
+						<td class="text-center">{t_type.tilltype.t_type_desc}</td>
 						<td>
 							<a href="/tills/{t_type.id}" class="btn btn-info">Mostrar</a>
 						</td>

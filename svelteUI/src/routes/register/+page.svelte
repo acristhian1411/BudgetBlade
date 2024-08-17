@@ -1,6 +1,7 @@
 <script>
     import { onMount } from 'svelte';
     import axios from 'axios';
+    import { PUBLIC_APP_URL } from '$env/static/public';
 
     let username = '';
     let password = '';
@@ -12,7 +13,7 @@
     });
     function handleRegister(username, password, email) {
         console.log('register', username + password + email);
-        axios.post('http://localhost:3000/api/auth/register', {
+        axios.post(`${PUBLIC_APP_URL}/api/auth/register`, {
             username,
             password,
             email,
