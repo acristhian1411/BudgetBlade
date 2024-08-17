@@ -27,7 +27,7 @@
 		accepted: [],
 		rejected: []
   	};
-	let user_name = '';
+	let user_email = '';
 	let user_password = '';
 	export let edit;
 	export let item;
@@ -115,7 +115,7 @@
 				body: data,
 				config
 				});
-				const result =  response.json();
+				const result =  response;
 				console.log(result);
 
 				let detail = {
@@ -126,6 +126,20 @@
 				};
 				OpenAlertMessage(detail);
 				close();
+				axios.post(`${PUBLIC_APP_URL}/api/auth/register`, {
+					email: user_email,
+					password: user_password,
+					person_id:res.data.person_id
+				}).then((x) => {
+					let detail = {
+						detail: {
+							type: 'success',
+							message: 'Registro exitoso'
+						}
+					};
+					OpenAlertMessage(detail);
+					close();
+				});
 			});
 	}
 	async function handleUpdateObject() {
@@ -145,7 +159,7 @@
 				body: data,
 				config
 				});
-				const result =  response.json();
+				const result =  response;
 				console.log(result);
 				let detail = {
 					detail: {
@@ -153,8 +167,22 @@
 						message: res.data.message
 					}
 				};
+
 				OpenAlertMessage(detail);
-				close();
+				axios.post(`${PUBLIC_APP_URL}/api/auth/register`, {
+					email: user_email,
+					password: user_password,
+					person_id:res.data.person_id
+				}).then((x) => {
+					let detail = {
+						detail: {
+							type: 'success',
+							message: 'Registro exitoso'
+						}
+					};
+					OpenAlertMessage(detail);
+					close();
+				});
 			});
 	}
 	async function UploadPhoto(){
@@ -241,7 +269,7 @@
 			<div class="mb-4 flex items-center w-20 h-20">
 				
 				
-				<label for="user_name" class="mr-2">Foto:</label>
+				<label for="user_email" class="mr-2">Foto:</label>
 				<!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
 				{#if edit == true}
 					<picture>
@@ -254,15 +282,15 @@
 				</button>
 				{/if}
 			</div>
-			{#if edit == true}
+			<!-- {#if edit == true} -->
 				{#if can_upload == true}
 					<Dropzone multiple={false} on:drop={handleFilesSelect} />
 					<!-- <input type="file" bind:files={person_photo} on:change={handleChangePhoto} /> -->
 				{/if}
-			{/if}
+			<!-- {/if} -->
 			<div class="mb-4 flex items-center">
-				<label for="user_name" class="mr-2">Usuario:</label>
-				<input type="text" bind:value={user_name} class="input input-bordered w-full max-w-xs" />
+				<label for="user_email" class="mr-2">Email:</label>
+				<input type="text" bind:value={user_email} class="input input-bordered w-full max-w-xs" />
 			</div>
 			<div class="mb-4 flex items-center">
 				<label for="user_password" class="mr-2">Contraseña:</label>
