@@ -36,12 +36,16 @@ const getAllTillsTypes = async (req, res) => {
  * @returns {Promise<void>} - Retorna el tipo de caja creado.
  */
 const createTillsType = async (req,res)=>{
-    const type = await prisma.tillsTypes.create({
-        data:{
-            t_type_desc:req.body.t_type_desc
-        }
-    })
-    res.status(201).json({message:'Registro creado correctamente',data:type})
+    try {
+        const type = await prisma.tillsTypes.create({
+            data:{
+                t_type_desc:req.body.t_type_desc
+            }
+        })
+        res.status(201).json({message:'Registro creado correctamente',data:type})
+    } catch (error) {
+        res.status(500).json('No se pudo crear el registro.');
+    }
 }
 
 /**
