@@ -5,29 +5,21 @@
 ## Características principales
 
 - **Registro de transacciones:** Registra tus gastos e ingresos de forma fácil y rápida.
-- **Categorización:** Categoriza tus transacciones para un mejor seguimiento y análisis.
-- **Informes y gráficos:** Visualiza tus datos financieros en informes y gráficos interactivos.
+- **Gestión de cajas:** Administra múltiples cajas o cuentas para organizar tu dinero.
 
 ## Tecnologías utilizadas
 
-- **Backend:** Node.js, Express.js, Prisma (ORM para PostgreSQL)
-- **Frontend:** Svelte
-- **Base de datos:** PostgreSQL
-- **Documentación de API:** Swagger
+- **Framework móvil:** React Native con Expo (SDK 54)
+- **Navegación:** Expo Router
+- **Base de datos local:** SQLite vía expo-sqlite
+- **Estilos:** NativeWind (Tailwind CSS para React Native)
 
 ## Instalación y configuración
 
 1. Clona el repositorio: `https://github.com/acristhian1411/BudgetBlade.git`
-2. Accede al directorio del proyecto: `cd BudgetBlade`
+2. Accede al directorio del proyecto: `cd BudgetBlade/mobile`
 3. Instala las dependencias: `npm install`
-4. Copia el archivo de configuración: `cp .env.example .env`
-5. Configura la base de datos en el archivo `.env`
-6. Ejecuta las migraciones: `npx prisma migrate dev`
-7. Accede al directorio del frontend: `cd svelteUI`
-8. Instala las dependencias del frontend: `npm install`
-9. Compila el frontend: `npm run build`
-10. Lanza la aplicación dentro del directorio principal: `npm start` o `npm run dev`
-11. Ve a la documentación de la api en: [http://localhost:3000/docs]
+4. Inicia la aplicación: `npx expo start`
 
 ## Licencia
 
