@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,11 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { getAllTills } from '@/db/repositories/till.repo';
 import { createTransaction, createTransfer } from '@/db/repositories/transaction.repo';
@@ -32,18 +33,26 @@ export default function NewTransactionScreen() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      getAllTills().then((data) => {
-        setTills(data);
-        if (data.length > 0) {
-          setTillId(data[0].id);
-          setFromTillId(data[0].id);
-          setToTillId(data[1]?.id ?? data[0].id);
-        }
-      });
-    }, [])
-  );
+  const [showTypePicker, setShowTypePicker] = useState(false);
+
+  const txTypeLabels: Record<TxType, string> = {
+    ingreso: 'Ingreso',
+    egreso: 'Egreso',
+    transferencia: 'Transferencia',
+  };
+
+useFocusEffect(
+  useCallback(() => {
+    getAllTills().then((data) => {
+      setTills(data);
+      if (data.length > 0) {
+        setTillId(data[0].id);
+        setFromTillId(data[0].id);
+        setToTillId(data[1]?.id ?? data[0].id);
+      }
+    });
+  }, [])
+);
 
   const handleSave = async () => {
     if (tills.length === 0) {
@@ -126,25 +135,45 @@ export default function NewTransactionScreen() {
         </View>
 
         {/* Type selector */}
-        <View className="flex-row bg-gray-100 dark:bg-neutral-800 rounded-xl p-1 mb-5">
-          {(['ingreso', 'egreso', 'transferencia'] as TxType[]).map((t) => (
-            <TouchableOpacity
-              key={t}
-              onPress={() => setTxType(t)}
-              className={`flex-1 py-2 rounded-lg ${
-                txType === t ? 'bg-white dark:bg-neutral-700 shadow-sm' : ''
-              }`}>
-              <Text
-                className={`text-center text-sm capitalize ${
-                  txType === t
-                    ? 'font-semibold text-black dark:text-white'
-                    : 'text-gray-500'
-                }`}>
-                {t}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <ThemedText type="defaultSemiBold" className="mb-2">Tipo</ThemedText>
+        <TouchableOpacity
+          onPress={() => setShowTypePicker(true)}
+          className="flex-row justify-between items-center border border-gray-300 dark:border-gray-600 rounded-xl p-3 mb-5">
+          <Text className="text-black dark:text-white text-base capitalize">
+            {txTypeLabels[txType]}
+          </Text>
+          <Text className="text-gray-400">▼</Text>
+        </TouchableOpacity>
+
+        <Modal visible={showTypePicker} transparent animationType="fade">
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setShowTypePicker(false)}
+            className="flex-1 justify-center items-center bg-black/40">
+            <View className="bg-white dark:bg-neutral-800 rounded-2xl w-72 overflow-hidden">
+              {(['ingreso', 'egreso', 'transferencia'] as TxType[]).map((t) => (
+                <TouchableOpacity
+                  key={t}
+                  onPress={() => {
+                    setTxType(t);
+                    setShowTypePicker(false);
+                  }}
+                  className={`px-5 py-4 border-b border-gray-100 dark:border-neutral-700 ${
+                    txType === t ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                  }`}>
+                  <Text
+                    className={`text-base capitalize ${
+                      txType === t
+                        ? 'font-semibold text-blue-600 dark:text-blue-400'
+                        : 'text-gray-700 dark:text-gray-200'
+                    }`}>
+                    {txTypeLabels[t]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
 
         {/* Account picker(s) */}
         {txType === 'transferencia' ? (

@@ -38,3 +38,19 @@ export const getTillsWithBalances = async () => {
     ORDER BY t.name
   `);
 };
+
+/** Update a till's name and account_number. */
+export const updateTill = async (id, name, accountNumber) => {
+  const db = await getDb();
+  await db.runAsync(
+    'UPDATE tills SET name = ?, account_number = ? WHERE id = ?',
+    [name, accountNumber || null, id]
+  );
+};
+
+/** Delete a till and all its transactions. */
+export const deleteTill = async (id) => {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM transactions WHERE till_id = ?', [id]);
+  await db.runAsync('DELETE FROM tills WHERE id = ?', [id]);
+};

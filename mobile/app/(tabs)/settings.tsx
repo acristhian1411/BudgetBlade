@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as FileSystem from 'expo-file-system';
+import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 
 import { useAuth } from '@/context/auth.context';
@@ -11,35 +11,42 @@ export default function SettingsScreen() {
   const { logout } = useAuth();
 
   const handleExportCSV = async () => {
-    const txs = await getTransactions();
-    const header = 'id,till_name,amount,type,description,transfer_id,transaction_date\n';
-    const rows = txs
-      .map((t: any) =>
-        [
-          t.id,
-          `"${(t.till_name  || '').replace(/"/g, '""')}"`,
-          t.amount,
-          t.type,
-          `"${(t.description || '').replace(/"/g, '""')}"`,
-          t.transfer_id || '',
-          t.transaction_date,
-        ].join(',')
-      )
-      .join('\n');
+    try {
+      const txs = await getTransactions({});
+      if (!txs || txs.length === 0) {
+        Alert.alert('Sin datos', 'No hay movimientos para exportar.');
+        return;
+      }
 
-    const csv  = header + rows;
-    const path = `${FileSystem.documentDirectory}transactions_${Date.now()}.csv`;
-    await FileSystem.writeAsStringAsync(path, csv, {
-      encoding: FileSystem.EncodingType.UTF8,
-    });
+      const header = 'id,till_name,amount,type,description,transfer_id,transaction_date\n';
+      const rows = txs
+        .map((t: any) =>
+          [
+            t.id,
+            `"${(t.till_name  || '').replace(/"/g, '""')}"`,
+            t.amount,
+            t.type,
+            `"${(t.description || '').replace(/"/g, '""')}"`,
+            t.transfer_id || '',
+            t.transaction_date,
+          ].join(',')
+        )
+        .join('\n');
 
-    if (await Sharing.isAvailableAsync()) {
-      await Sharing.shareAsync(path, {
-        mimeType:    'text/csv',
-        dialogTitle: 'Exportar movimientos',
-      });
-    } else {
-      Alert.alert('Exportado', `Archivo guardado en:\n${path}`);
+      const csv  = header + rows;
+      const file = new File(Paths.document, `transactions_${Date.now()}.csv`);
+      await file.write(csv);
+
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri, {
+          mimeType:    'text/csv',
+          dialogTitle: 'Exportar movimientos',
+        });
+      } else {
+        Alert.alert('Exportado', `Archivo guardado en:\n${file.uri}`);
+      }
+    } catch (error: any) {
+      Alert.alert('Error', `No se pudo exportar: ${error?.message ?? 'Error desconocido'}`);
     }
   };
 

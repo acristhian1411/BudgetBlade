@@ -5,15 +5,17 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { useRouter } from 'expo-router';
 
-import { getTotal, getTotalByCategory, getLastN } from '@/db/repositories/transaction.repo';
+import { getTotal, getTotalByCategory, getLastN, deleteTransaction } from '@/db/repositories/transaction.repo';
 import { ThemedText } from '@/components/themed-text';
 
 const fmt = (val: number) =>
-  new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(val);
+  new Intl.NumberFormat('es-PY', { style: 'currency', currency: 'PYG' }).format(val);
 
 export default function DashboardScreen() {
   const router = useRouter();
@@ -22,7 +24,7 @@ export default function DashboardScreen() {
   const [recent, setRecent] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [t, c, r] = await Promise.all([
       getTotal(),
       getTotalByCategory(),
@@ -31,9 +33,20 @@ export default function DashboardScreen() {
     setTotal(t);
     setCategories(c);
     setRecent(r);
-  };
+  }, []);
 
-  useFocusEffect(useCallback(() => { load(); }, []));
+  useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  const confirmDeleteTx = (tx: any) => {
+    Alert.alert(
+      'Eliminar movimiento',
+      `¿Eliminar "${tx.description || 'Sin descripción'}"?${tx.transfer_id ? ' Se eliminarán ambos lados de la transferencia.' : ''}`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: async () => { await deleteTransaction(tx.id); await load(); } },
+      ]
+    );
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -74,8 +87,10 @@ export default function DashboardScreen() {
           <Text className="text-gray-400 text-center py-6">Sin movimientos aún</Text>
         ) : (
           recent.map((tx) => (
-            <View
+            <TouchableOpacity
               key={tx.id}
+              onLongPress={() => confirmDeleteTx(tx)}
+              activeOpacity={0.7}
               className="bg-white dark:bg-neutral-800 rounded-xl p-4 mb-2 flex-row justify-between items-center">
               <View className="flex-1 mr-3">
                 <Text className="text-black dark:text-white font-medium" numberOfLines={1}>
@@ -94,14 +109,13 @@ export default function DashboardScreen() {
                 {tx.type === 'ingreso' ? '+' : tx.type === 'egreso' ? '−' : ''}
                 {fmt(Math.abs(tx.amount))}
               </Text>
-            </View>
+            </TouchableOpacity>
           ))
         )}
       </ScrollView>
 
       {/* FAB */}
       <TouchableOpacity
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onPress={() => router.push('/new-transaction' as any)}
         className="absolute bottom-8 right-6 bg-blue-600 w-16 h-16 rounded-full items-center justify-center"
         style={{ elevation: 8, shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 6, shadowOffset: { width: 0, height: 3 } }}>
@@ -110,6 +124,3 @@ export default function DashboardScreen() {
     </SafeAreaView>
   );
 }
-
-
-

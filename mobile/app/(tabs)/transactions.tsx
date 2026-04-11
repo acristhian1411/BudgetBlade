@@ -6,11 +6,13 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 
-import { getTransactions } from '@/db/repositories/transaction.repo';
+import { getTransactions, deleteTransaction } from '@/db/repositories/transaction.repo';
 import { getAllTills } from '@/db/repositories/till.repo';
 import { ThemedText } from '@/components/themed-text';
 
@@ -82,7 +84,7 @@ export default function TransactionsScreen() {
   const [selectedTillId, setSelectedTillId] = useState(params.tillId ?? '');
   const [refreshing, setRefreshing] = useState(false);
 
-  const load = async () => {
+  const load = useCallback(async () => {
     const [txs, allTills] = await Promise.all([
       getTransactions({
         tillId:   selectedTillId ? Number(selectedTillId) : undefined,
@@ -93,11 +95,22 @@ export default function TransactionsScreen() {
     ]);
     setTransactions(txs);
     setTills(allTills);
-  };
+  }, [selectedPeriod, selectedTillId, selectedType]);
 
   useFocusEffect(
-    useCallback(() => { load(); }, [selectedType, selectedPeriod, selectedTillId])
+    useCallback(() => { void load(); }, [load])
   );
+
+  const confirmDeleteTx = (tx: any) => {
+    Alert.alert(
+      'Eliminar movimiento',
+      `¿Eliminar "${tx.description || 'Sin descripción'}"?${tx.transfer_id ? ' Se eliminarán ambos lados de la transferencia.' : ''}`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Eliminar', style: 'destructive', onPress: async () => { await deleteTransaction(tx.id); await load(); } },
+      ]
+    );
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -159,7 +172,10 @@ export default function TransactionsScreen() {
           </Text>
         }
         renderItem={({ item }) => (
-          <View className="bg-white dark:bg-neutral-800 rounded-xl p-4 mb-2 flex-row justify-between items-center">
+          <TouchableOpacity
+            onLongPress={() => confirmDeleteTx(item)}
+            activeOpacity={0.7}
+            className="bg-white dark:bg-neutral-800 rounded-xl p-4 mb-2 flex-row justify-between items-center">
             <View className="flex-1 mr-3">
               <Text
                 className="text-black dark:text-white font-medium"
@@ -184,7 +200,7 @@ export default function TransactionsScreen() {
               </Text>
               <Text className="text-gray-400 text-xs capitalize">{item.type}</Text>
             </View>
-          </View>
+          </TouchableOpacity>
         )}
       />
     </SafeAreaView>

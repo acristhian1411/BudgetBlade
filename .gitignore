@@ -26,7 +26,8 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 *.lcov
-
+.agents
+skills-lock.json
 # nyc test coverage
 .nyc_output
 

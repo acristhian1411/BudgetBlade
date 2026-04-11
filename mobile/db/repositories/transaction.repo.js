@@ -113,3 +113,17 @@ export const getTotalByCategory = async () => {
   for (const r of rows) result[r.category] = r.balance;
   return result;
 };
+
+/**
+ * Delete a transaction by id.
+ * If the transaction is part of a transfer, both legs are deleted.
+ */
+export const deleteTransaction = async (id) => {
+  const db = await getDb();
+  const row = await db.getFirstAsync('SELECT transfer_id FROM transactions WHERE id = ?', [id]);
+  if (row?.transfer_id) {
+    await db.runAsync('DELETE FROM transactions WHERE transfer_id = ?', [row.transfer_id]);
+  } else {
+    await db.runAsync('DELETE FROM transactions WHERE id = ?', [id]);
+  }
+};

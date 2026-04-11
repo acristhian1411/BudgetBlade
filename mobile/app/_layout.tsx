@@ -1,5 +1,5 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useRouter, useRootNavigationState, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
@@ -15,7 +15,7 @@ function RootNavigator() {
   const colorScheme = useColorScheme();
   const { isLoggedIn, isFirstRun, setFirstRun } = useAuth();
   const router = useRouter();
-
+  
   // Initialise DB and determine first-run state once on mount.
   useEffect(() => {
     (async () => {
@@ -23,7 +23,7 @@ function RootNavigator() {
       const userExists = await hasUser();
       setFirstRun(!userExists);
     })();
-  }, []);
+  }, [setFirstRun]);
 
   // Redirect whenever auth state changes.
   useEffect(() => {
@@ -35,7 +35,7 @@ function RootNavigator() {
     } else {
       router.replace('/(tabs)');
     }
-  }, [isLoggedIn, isFirstRun]);
+  }, [isLoggedIn, isFirstRun, router]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
