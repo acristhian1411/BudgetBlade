@@ -5,11 +5,11 @@ import { getDb } from '../index';
  * amount is always stored as a positive number; the SQL balance query
  * applies sign based on `type`.
  */
-export const createTransaction = async ({ tillId, amount, type, description, date }) => {
+export const createTransaction = async ({ tillId, amount, type, description, date, categoryId }) => {
   const db = await getDb();
   await db.runAsync(
-    'INSERT INTO transactions (till_id, amount, type, description, transaction_date) VALUES (?, ?, ?, ?, ?)',
-    [tillId, Math.abs(amount), type, description ?? '', date]
+    'INSERT INTO transactions (till_id, amount, type, description, transaction_date, category_id) VALUES (?, ?, ?, ?, ?, ?)',
+    [tillId, Math.abs(amount), type, description ?? '', date, categoryId ?? null]
   );
 };
 
