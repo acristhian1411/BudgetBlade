@@ -147,3 +147,4 @@ svelteUI/node_modules
 svelteUI/package-lock.json
 # End of https://www.toptal.com/developers/gitignore/api/node
 .planning
+.github
