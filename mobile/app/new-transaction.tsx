@@ -1,20 +1,25 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
+  FlatList,
   TouchableOpacity,
   ScrollView,
   Platform,
   Alert,
   Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 
 import { getAllTills } from '@/db/repositories/till.repo';
+import { getAllCategories } from '@/db/repositories/category.repo';
 import { createTransaction, createTransfer } from '@/db/repositories/transaction.repo';
+import { getOccurrenceById, processOccurrence, getUpcomingOccurrences } from '@/db/repositories/scheduled.repo';
+import { scheduleOccurrenceNotifications } from '@/services/notifications.service';
 import { ThemedText } from '@/components/themed-text';
 
 type TxType = 'ingreso' | 'egreso' | 'transferencia';
@@ -23,17 +28,26 @@ const formatDate = (d: Date) => d.toISOString().split('T')[0];
 
 export default function NewTransactionScreen() {
   const router = useRouter();
+  const { occurrenceId } = useLocalSearchParams<{ occurrenceId?: string }>();
+  
   const [tills, setTills] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
   const [txType, setTxType] = useState<TxType>('ingreso');
   const [tillId, setTillId] = useState<number | null>(null);
   const [fromTillId, setFromTillId] = useState<number | null>(null);
   const [toTillId, setToTillId] = useState<number | null>(null);
+  const [categoryId, setCategoryId] = useState<number | null>(null);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  
+  // Smart link state
+  const [linkedOccurrence, setLinkedOccurrence] = useState<any>(null);
+  const [loadingOccurrence, setLoadingOccurrence] = useState(false);
 
   const txTypeLabels: Record<TxType, string> = {
     ingreso: 'Ingreso',
@@ -41,18 +55,50 @@ export default function NewTransactionScreen() {
     transferencia: 'Transferencia',
   };
 
-useFocusEffect(
-  useCallback(() => {
-    getAllTills().then((data) => {
-      setTills(data);
-      if (data.length > 0) {
-        setTillId(data[0].id);
-        setFromTillId(data[0].id);
-        setToTillId(data[1]?.id ?? data[0].id);
-      }
-    });
-  }, [])
-);
+  // Load tills and categories
+  useFocusEffect(
+    useCallback(() => {
+      getAllTills().then((data) => {
+        setTills(data);
+        if (data.length > 0) {
+          setTillId(data[0].id);
+          setFromTillId(data[0].id);
+          setToTillId(data[1]?.id ?? data[0].id);
+        }
+      });
+      getAllCategories().then(setCategories);
+    }, [])
+  );
+
+  // Load occurrence if linked
+  useEffect(() => {
+    if (occurrenceId) {
+      setLoadingOccurrence(true);
+      (async () => {
+        try {
+          const occ = await getOccurrenceById(parseInt(occurrenceId, 10));
+          if (occ) {
+            setLinkedOccurrence(occ);
+            // Auto-fill form
+            const occTxType = occ.type === 'ingreso' ? 'ingreso' : 'egreso';
+            setTxType(occTxType);
+            setTillId(occ.till_id);
+            if (occ.amount) {
+              setAmount(occ.amount.toString());
+            }
+            setDescription(
+              `Pago ${occ.title} - Cuota ${occ.installment_number || '?'}`
+            );
+            setDate(new Date(occ.due_date));
+          }
+        } catch (err) {
+          console.warn('Error loading occurrence:', err);
+        } finally {
+          setLoadingOccurrence(false);
+        }
+      })();
+    }
+  }, [occurrenceId]);
 
   const handleSave = async () => {
     if (tills.length === 0) {
@@ -81,13 +127,34 @@ useFocusEffect(
         date: formatDate(date),
       });
     } else {
-      await createTransaction({
+      const result = await createTransaction({
         tillId: tillId!,
         amount: numAmount,
         type: txType,
         description,
         date: formatDate(date),
+        categoryId,
       });
+
+      // If linked to an occurrence, mark it as processed
+      if (linkedOccurrence && result) {
+        try {
+          // Get the ID of the newly inserted transaction
+          // We need to fetch it from the DB
+          const tx = await (await import('@/db/index').then(m => m.getDb()))().getFirstAsync(
+            'SELECT id FROM transactions WHERE till_id = ? AND amount = ? AND type = ? ORDER BY id DESC LIMIT 1',
+            [tillId, Math.abs(numAmount), txType]
+          );
+          if (tx) {
+            await processOccurrence(linkedOccurrence.id, tx.id);
+            // Re-schedule notifications
+            const upcoming = await getUpcomingOccurrences(30);
+            await scheduleOccurrenceNotifications(upcoming);
+          }
+        } catch (err) {
+          console.warn('Error processing occurrence:', err);
+        }
+      }
     }
     router.back();
   };
@@ -128,11 +195,24 @@ useFocusEffect(
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         {/* Header */}
         <View className="flex-row justify-between items-center mb-5">
-          <ThemedText type="title">Nuevo movimiento</ThemedText>
+          <View>
+            <ThemedText type="title">Nuevo movimiento</ThemedText>
+            {linkedOccurrence && (
+              <Text className="text-blue-600 dark:text-blue-400 text-xs mt-1">
+                Cerrando cuota {linkedOccurrence.installment_number}
+              </Text>
+            )}
+          </View>
           <TouchableOpacity onPress={() => router.back()}>
             <Text className="text-gray-400 text-xl">✕</Text>
           </TouchableOpacity>
         </View>
+
+        {loadingOccurrence && (
+          <View className="items-center py-8">
+            <ActivityIndicator size="large" />
+          </View>
+        )}
 
         {/* Type selector */}
         <ThemedText type="defaultSemiBold" className="mb-2">Tipo</ThemedText>
@@ -200,6 +280,73 @@ useFocusEffect(
           onChangeText={setAmount}
           className="border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-black dark:text-white text-lg"
         />
+
+        {/* Category picker */}
+        {txType !== 'transferencia' && (
+          <>
+            <ThemedText type="defaultSemiBold" className="mt-5 mb-2">Categoría</ThemedText>
+            <TouchableOpacity
+              onPress={() => { setCategorySearch(''); setShowCategoryPicker(true); }}
+              className="flex-row justify-between items-center border border-gray-300 dark:border-gray-600 rounded-xl p-3 mb-1">
+              <Text className={categoryId ? 'text-black dark:text-white' : 'text-gray-400'}>
+                {categoryId
+                  ? (categories.find((c) => c.id === categoryId)?.name ?? 'Seleccionar')
+                  : 'Seleccionar categoría'}
+              </Text>
+              <Text className="text-gray-400 text-xs">▼</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        <Modal visible={showCategoryPicker} transparent animationType="slide">
+          <SafeAreaView className="flex-1 bg-white dark:bg-neutral-900">
+            <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
+              <ThemedText type="subtitle">Categoría</ThemedText>
+              <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
+                <Text className="text-gray-400 text-xl">✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View className="px-4 pb-2">
+              <TextInput
+                placeholder="Buscar..."
+                placeholderTextColor="#9CA3AF"
+                value={categorySearch}
+                onChangeText={setCategorySearch}
+                autoFocus
+                className="border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-black dark:text-white"
+              />
+            </View>
+            <FlatList
+              data={categories.filter((c) =>
+                (txType === 'ingreso' ? c.type === 'income' : c.type === 'expense') &&
+                c.name.toLowerCase().includes(categorySearch.toLowerCase())
+              )}
+              keyExtractor={(item) => item.id.toString()}
+              keyboardShouldPersistTaps="handled"
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  onPress={() => { setCategoryId(item.id); setShowCategoryPicker(false); }}
+                  className={`px-4 py-4 border-b border-gray-100 dark:border-neutral-800 flex-row justify-between items-center ${
+                    categoryId === item.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
+                  }`}>
+                  <Text className={`text-base ${
+                    categoryId === item.id
+                      ? 'text-blue-600 dark:text-blue-400 font-semibold'
+                      : 'text-black dark:text-white'
+                  }`}>
+                    {item.name}
+                  </Text>
+                  {categoryId === item.id && (
+                    <Text className="text-blue-600 dark:text-blue-400 text-lg">✓</Text>
+                  )}
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={
+                <Text className="text-gray-400 text-center py-8">Sin resultados</Text>
+              }
+            />
+          </SafeAreaView>
+        </Modal>
 
         {/* Description */}
         <ThemedText type="defaultSemiBold" className="mt-4 mb-2">

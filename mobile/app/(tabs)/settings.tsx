@@ -10,7 +10,46 @@ import { ThemedText } from '@/components/themed-text';
 export default function SettingsScreen() {
   const { logout } = useAuth();
 
-  const handleExportCSV = async () => {
+  const escapeCsvValue = (value: unknown) => {
+    if (value === null || value === undefined) return '';
+    const str = String(value);
+    return `"${str.replace(/"/g, '""')}"`;
+  };
+
+  const buildCsv = (rows: any[]) => {
+    const preferredOrder = [
+      'id',
+      'till_id',
+      'till_name',
+      'category_id',
+      'amount',
+      'type',
+      'description',
+      'transfer_id',
+      'transaction_date',
+    ];
+
+    const discoveredKeys: string[] = Array.from(
+      rows.reduce<Set<string>>((set, row) => {
+        Object.keys(row ?? {}).forEach((k) => set.add(k));
+        return set;
+      }, new Set<string>())
+    );
+
+    const orderedKeys: string[] = [
+      ...preferredOrder.filter((k) => discoveredKeys.includes(k)),
+      ...discoveredKeys.filter((k) => !preferredOrder.includes(k)),
+    ];
+
+    const header = `${orderedKeys.join(',')}\n`;
+    const dataRows = rows
+      .map((row) => orderedKeys.map((k) => escapeCsvValue(row?.[k])).join(','))
+      .join('\n');
+
+    return header + dataRows;
+  };
+
+  const exportTransactions = async (format: 'csv' | 'json') => {
     try {
       const txs = await getTransactions({});
       if (!txs || txs.length === 0) {
@@ -18,28 +57,13 @@ export default function SettingsScreen() {
         return;
       }
 
-      const header = 'id,till_name,amount,type,description,transfer_id,transaction_date\n';
-      const rows = txs
-        .map((t: any) =>
-          [
-            t.id,
-            `"${(t.till_name  || '').replace(/"/g, '""')}"`,
-            t.amount,
-            t.type,
-            `"${(t.description || '').replace(/"/g, '""')}"`,
-            t.transfer_id || '',
-            t.transaction_date,
-          ].join(',')
-        )
-        .join('\n');
-
-      const csv  = header + rows;
-      const file = new File(Paths.document, `transactions_${Date.now()}.csv`);
-      await file.write(csv);
+      const content = format === 'json' ? JSON.stringify(txs, null, 2) : buildCsv(txs);
+      const file = new File(Paths.document, `transactions_${Date.now()}.${format}`);
+      await file.write(content);
 
       if (await Sharing.isAvailableAsync()) {
         await Sharing.shareAsync(file.uri, {
-          mimeType:    'text/csv',
+          mimeType: format === 'json' ? 'application/json' : 'text/csv',
           dialogTitle: 'Exportar movimientos',
         });
       } else {
@@ -48,6 +72,14 @@ export default function SettingsScreen() {
     } catch (error: any) {
       Alert.alert('Error', `No se pudo exportar: ${error?.message ?? 'Error desconocido'}`);
     }
+  };
+
+  const handleExport = () => {
+    Alert.alert('Exportar datos', 'Selecciona el formato', [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'CSV', onPress: () => { void exportTransactions('csv'); } },
+      { text: 'JSON', onPress: () => { void exportTransactions('json'); } },
+    ]);
   };
 
   const handleLogout = () => {
@@ -63,11 +95,11 @@ export default function SettingsScreen() {
         <ThemedText type="title" className="mb-6">Ajustes</ThemedText>
 
         <TouchableOpacity
-          onPress={handleExportCSV}
+          onPress={handleExport}
           className="bg-white dark:bg-neutral-800 rounded-2xl p-4 flex-row justify-between items-center mb-3">
           <View>
-            <Text className="text-black dark:text-white font-semibold">Exportar datos (CSV)</Text>
-            <Text className="text-gray-400 text-xs">Comparte el historial por WhatsApp o mail</Text>
+            <Text className="text-black dark:text-white font-semibold">Exportar datos</Text>
+            <Text className="text-gray-400 text-xs">Descarga en CSV o JSON</Text>
           </View>
           <Text className="text-2xl">📤</Text>
         </TouchableOpacity>

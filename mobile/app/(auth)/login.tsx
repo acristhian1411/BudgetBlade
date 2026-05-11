@@ -7,6 +7,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -29,7 +30,11 @@ export default function LoginScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-center p-6">
-        <Text className="text-5xl text-center mb-2">💰</Text>
+        <Image
+          source={require('../../assets/images/budgetblade-logo.jpeg')}
+          className="w-36 h-36 self-center mb-4"
+          resizeMode="contain"
+        />
         <ThemedText type="title" className="text-center mb-1">
           BudgetBlade
         </ThemedText>

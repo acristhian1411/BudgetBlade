@@ -24,6 +24,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="compromisos"
+        options={{
+          title: 'Compromisos',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="calendar.badge.exclamationmark" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="tills"
         options={{
           title: 'Cuentas',
