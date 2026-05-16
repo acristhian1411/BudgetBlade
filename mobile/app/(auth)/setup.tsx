@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import {
-  View,
   Text,
   TextInput,
   TouchableOpacity,
   Alert,
   KeyboardAvoidingView,
+  Image,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,26 +18,48 @@ export default function SetupScreen() {
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isValidPassword = (value: string) => {
+    if (value.length < 8) return false;
+    const hasLetter = /[A-Za-z]/.test(value);
+    const hasNumber = /\d/.test(value);
+    return hasLetter && hasNumber;
+  };
 
   const handleRegister = async () => {
-    if (password.length < 4) {
-      Alert.alert('Error', 'La contraseña debe tener al menos 4 caracteres.');
+    if (isSubmitting) return;
+
+    if (!isValidPassword(password)) {
+      Alert.alert('Error', 'La contraseña debe tener al menos 8 caracteres e incluir letras y números.');
       return;
     }
     if (password !== confirm) {
       Alert.alert('Error', 'Las contraseñas no coinciden.');
       return;
     }
-    await register(password);
-    // AuthContext redirects to (tabs) after register
+
+    setIsSubmitting(true);
+    try {
+      await register(password);
+      // AuthContext redirects to (tabs) after register
+    } catch (error: any) {
+      Alert.alert('Error', `No se pudo crear el usuario: ${String(error?.message ?? 'error desconocido')}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-neutral-900">
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 justify-center p-6">
-        <Text className="text-5xl text-center mb-2">💰</Text>
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              className="flex-1 justify-center p-6">
+              <Image
+                source={require('../../assets/images/budgetblade-logo.jpeg')}
+                className="w-36 h-36 self-center mb-4"
+                resizeMode="contain"
+              />
         <ThemedText type="title" className="text-center mb-1">
           BudgetBlade
         </ThemedText>
@@ -74,10 +96,16 @@ export default function SetupScreen() {
 
         <TouchableOpacity
           onPress={handleRegister}
-          className="bg-blue-600 rounded-xl p-4">
+          disabled={isSubmitting}
+          className={`rounded-xl p-4 ${isSubmitting ? 'bg-blue-300' : 'bg-blue-600'}`}>
           <Text className="text-white text-center font-semibold text-base">
-            Crear contraseña
+            {isSubmitting ? 'Generando claves...' : 'Crear contraseña'}
           </Text>
+          {isSubmitting && (
+            <Text className="text-white text-center text-xs mt-1">
+              Preparando seguridad, un momento...
+            </Text>
+          )}
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>

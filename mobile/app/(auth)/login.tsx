@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -15,13 +15,66 @@ import { useAuth } from '@/context/auth.context';
 import { ThemedText } from '@/components/themed-text';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, getLockStatus } = useAuth();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [remainingMs, setRemainingMs] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const lockedSeconds = useMemo(() => Math.ceil(remainingMs / 1000), [remainingMs]);
+  const isLocked = remainingMs > 0;
+
+  useEffect(() => {
+    const loadLockStatus = async () => {
+      const status = await getLockStatus();
+      setRemainingMs(status.remainingMs);
+    };
+
+    void loadLockStatus();
+  }, [getLockStatus]);
+
+  useEffect(() => {
+    if (remainingMs <= 0) return;
+
+    const timer = setInterval(() => {
+      setRemainingMs((prev) => Math.max(0, prev - 1000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [remainingMs]);
 
   const handleLogin = async () => {
-    const ok = await login(password);
-    if (!ok) Alert.alert('Error', 'Contraseña incorrecta. Intenta de nuevo.');
+    if (isSubmitting) return;
+
+    if (isLocked) {
+      Alert.alert('Intenta más tarde', `Demasiados intentos. Espera ${lockedSeconds}s.`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const result = await login(password);
+      if (result.ok) return;
+
+      const nextRemainingMs = result.remainingMs ?? 0;
+      setRemainingMs(nextRemainingMs);
+
+      if (result.reason === 'key-unlock-failed') {
+        Alert.alert('Error de seguridad', 'No se pudo desbloquear la clave de seguridad local.');
+        return;
+      }
+
+      if (nextRemainingMs > 0) {
+        Alert.alert('Bloqueo temporal', `Demasiados intentos fallidos. Espera ${Math.ceil(nextRemainingMs / 1000)}s.`);
+        return;
+      }
+
+      Alert.alert('Error', 'Contraseña incorrecta. Intenta de nuevo.');
+    } catch (error: any) {
+      Alert.alert('Error', `No se pudo iniciar sesión: ${String(error?.message ?? 'error desconocido')}`);
+    } finally {
+      setIsSubmitting(false);
+    }
     // AuthContext redirects to (tabs) on success
   };
 
@@ -51,6 +104,7 @@ export default function LoginScreen() {
             onChangeText={setPassword}
             onSubmitEditing={handleLogin}
             returnKeyType="done"
+            editable={!isLocked}
             className="border border-gray-300 dark:border-gray-600 rounded-xl p-4 pr-24 text-black dark:text-white"
           />
           <TouchableOpacity
@@ -62,8 +116,24 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={handleLogin} className="bg-blue-600 rounded-xl p-4">
-          <Text className="text-white text-center font-semibold text-base">Ingresar</Text>
+        {isLocked ? (
+          <Text className="text-red-500 text-center mb-4">
+            Login bloqueado temporalmente. Reintenta en {lockedSeconds}s.
+          </Text>
+        ) : null}
+
+        <TouchableOpacity
+          onPress={handleLogin}
+          disabled={isLocked || isSubmitting}
+          className={`rounded-xl p-4 ${isLocked || isSubmitting ? 'bg-blue-300' : 'bg-blue-600'}`}>
+          <Text className="text-white text-center font-semibold text-base">
+            {isSubmitting ? 'Procesando seguridad...' : isLocked ? `Bloqueado ${lockedSeconds}s` : 'Ingresar'}
+          </Text>
+          {isSubmitting && (
+            <Text className="text-white text-center text-xs mt-1">
+              Por favor espera, verificando credenciales...
+            </Text>
+          )}
         </TouchableOpacity>
       </KeyboardAvoidingView>
     </SafeAreaView>

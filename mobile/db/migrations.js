@@ -29,7 +29,12 @@ export const initDB = async () => {
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS users (
       id TEXT PRIMARY KEY,
-      password TEXT
+      password TEXT,
+      password_salt TEXT,
+      password_iterations INTEGER,
+      password_algorithm TEXT,
+      failed_attempts INTEGER DEFAULT 0,
+      locked_until INTEGER
     );
 
     CREATE TABLE IF NOT EXISTS tills (
@@ -100,7 +105,7 @@ export const initDB = async () => {
     // Add category_id to transactions (idempotent)
     try {
       await db.execAsync(`ALTER TABLE transactions ADD COLUMN category_id INTEGER;`);
-    } catch (err) {
+    } catch (_err) {
       // Column already exists, ignore
     }
 
@@ -114,5 +119,53 @@ export const initDB = async () => {
 
     // Update schema version
     await db.execAsync('PRAGMA user_version = 1');
+  }
+
+  // Migrate to v2 if needed (auth hardening fields)
+  if (currentVersion < 2) {
+    try {
+      await db.execAsync('ALTER TABLE users ADD COLUMN password_salt TEXT;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    try {
+      await db.execAsync('ALTER TABLE users ADD COLUMN password_iterations INTEGER;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    try {
+      await db.execAsync('ALTER TABLE users ADD COLUMN password_algorithm TEXT;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    try {
+      await db.execAsync('ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    try {
+      await db.execAsync('ALTER TABLE users ADD COLUMN locked_until INTEGER;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    await db.runAsync(
+      `UPDATE users
+       SET password_algorithm = 'legacy-sha256'
+       WHERE password IS NOT NULL
+         AND (password_algorithm IS NULL OR password_algorithm = '')`
+    );
+
+    await db.runAsync(
+      `UPDATE users
+       SET failed_attempts = 0
+       WHERE failed_attempts IS NULL`
+    );
+
+    await db.execAsync('PRAGMA user_version = 2');
   }
 };

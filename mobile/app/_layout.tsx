@@ -2,7 +2,6 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useRootNavigationState, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import * as Notifications from 'expo-notifications';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -16,6 +15,9 @@ import {
   getUpcomingOccurrences,
 } from '@/db/repositories/scheduled.repo';
 import {
+  addNotificationResponseListener,
+  areNotificationsSupported,
+  setupNotificationHandler,
   requestPermissions,
   scheduleOccurrenceNotifications,
   getInitialNotificationData,
@@ -24,8 +26,10 @@ import {
 /** Runs DB init and performs auth-based redirects. Must be inside AuthProvider. */
 function RootNavigator() {
   const colorScheme = useColorScheme();
-  const { isLoggedIn, isFirstRun, setFirstRun } = useAuth();
+  const { isLoggedIn, isFirstRun, setFirstRun, markActivity } = useAuth();
   const router = useRouter();
+  const rootNavigationState = useRootNavigationState();
+  const segments = useSegments();
   
   // Initialise DB and determine first-run state once on mount.
   useEffect(() => {
@@ -36,9 +40,13 @@ function RootNavigator() {
       try {
         await generateRollingOccurrences();
         await markOverdue();
-        await requestPermissions();
-        const upcoming = await getUpcomingOccurrences(30);
-        await scheduleOccurrenceNotifications(upcoming);
+
+        if (areNotificationsSupported()) {
+          setupNotificationHandler();
+          await requestPermissions();
+          const upcoming = await getUpcomingOccurrences(30);
+          await scheduleOccurrenceNotifications(upcoming);
+        }
       } catch (err) {
         console.warn('Error setting up notifications:', err);
       }
@@ -50,8 +58,8 @@ function RootNavigator() {
 
   // Listen for notification responses (when user taps a notification)
   useEffect(() => {
-    const subscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
+    const remove = addNotificationResponseListener(
+      (response: any) => {
         const occurrenceId = response.notification.request.content.data.occurrenceId;
         if (occurrenceId) {
           router.push(`/new-transaction?occurrenceId=${occurrenceId}`);
@@ -59,18 +67,24 @@ function RootNavigator() {
       }
     );
 
-    return () => subscription.remove();
+    return () => remove();
   }, [router]);
 
   // Check if app was launched from a notification
   useEffect(() => {
     (async () => {
-      const data = await getInitialNotificationData();
+      const data = (await getInitialNotificationData()) as { occurrenceId?: number } | null;
       if (data?.occurrenceId && isLoggedIn) {
         router.push(`/new-transaction?occurrenceId=${data.occurrenceId}`);
       }
     })();
   }, [isLoggedIn, router]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    if (!rootNavigationState?.key) return;
+    markActivity();
+  }, [isLoggedIn, markActivity, rootNavigationState?.key, segments]);
 
   // Redirect whenever auth state changes.
   useEffect(() => {

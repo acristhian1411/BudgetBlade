@@ -1,14 +1,35 @@
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-// Configure notification behavior when app is in foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-  }),
-});
+const isExpoGoAndroid = Platform.OS === 'android' && Constants.appOwnership === 'expo';
+const notificationsSupported = !isExpoGoAndroid;
+let _handlerConfigured = false;
+
+export const areNotificationsSupported = () => notificationsSupported;
+
+export const setupNotificationHandler = () => {
+  if (!notificationsSupported || _handlerConfigured) return;
+
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+    }),
+  });
+
+  _handlerConfigured = true;
+};
+
+export const addNotificationResponseListener = (handler) => {
+  if (!notificationsSupported) {
+    return () => {};
+  }
+
+  const subscription = Notifications.addNotificationResponseReceivedListener(handler);
+  return () => subscription.remove();
+};
 
 /**
  * Request notification permissions.
@@ -16,6 +37,8 @@ Notifications.setNotificationHandler({
  * On Android, permissions are already granted at install time.
  */
 export const requestPermissions = async () => {
+  if (!notificationsSupported) return false;
+
   if (Platform.OS === 'ios') {
     const { status } = await Notifications.requestPermissionsAsync();
     return status === 'granted';
@@ -28,6 +51,7 @@ export const requestPermissions = async () => {
  * Cancel all scheduled notifications.
  */
 export const cancelAllNotifications = async () => {
+  if (!notificationsSupported) return;
   await Notifications.cancelAllScheduledNotificationsAsync();
 };
 
@@ -37,6 +61,8 @@ export const cancelAllNotifications = async () => {
  * @param {Array} occurrences - Array of { id, due_date, title, installment_number, amount } from DB
  */
 export const scheduleOccurrenceNotifications = async (occurrences) => {
+  if (!notificationsSupported) return;
+
   // Cancel all existing notifications first
   await cancelAllNotifications();
 
@@ -92,6 +118,8 @@ const formatCurrency = (val) => {
  * @returns {Promise<Object | null>} { occurrenceId } or null
  */
 export const getInitialNotificationData = async () => {
+  if (!notificationsSupported) return null;
+
   const response = await Notifications.getLastNotificationResponseAsync();
   if (response?.notification?.request?.content?.data?.occurrenceId) {
     return {
