@@ -254,19 +254,30 @@ export default function CompromisosScreen() {
       keyExtractor={(item) => item.id.toString()}
       renderItem={({ item }) => {
         const isOverdue = item.status === 'overdue';
+        const isPartial = item.status === 'partially_paid';
+        const remaining = Number(item.remaining_amount ?? item.amount ?? 0);
         return (
           <TouchableOpacity
             onPress={() => router.push(`/new-transaction?occurrenceId=${item.id}`)}
             activeOpacity={0.7}
             className="bg-white dark:bg-neutral-800 rounded-xl p-4 mb-3 border-l-4"
             style={{
-              borderLeftColor: isOverdue ? '#ef4444' : item.type === 'ingreso' ? '#10b981' : '#f59e0b',
+              borderLeftColor: isOverdue
+                ? '#ef4444'
+                : isPartial
+                  ? '#f59e0b'
+                  : item.type === 'ingreso'
+                    ? '#10b981'
+                    : '#3b82f6',
             }}>
             <View className="flex-row justify-between mb-2">
               <ThemedText type="defaultSemiBold" className="flex-1 pr-2">
                 {item.title}
               </ThemedText>
               {isOverdue && <Text className="text-red-600 font-bold text-xs">VENCIDO</Text>}
+              {isPartial && !isOverdue && (
+                <Text className="text-amber-600 font-bold text-xs">PARCIAL</Text>
+              )}
             </View>
             <Text className="text-gray-500 dark:text-gray-400 text-sm mb-2">
               {item.entity_name || 'Sin entidad'} • {formatDateStr(item.due_date)}
@@ -280,6 +291,14 @@ export default function CompromisosScreen() {
                   {item.type === 'ingreso' ? '+' : '−'} {fmt(item.amount)}
                 </Text>
               )}
+            </View>
+            <View className="flex-row justify-between items-center mt-1">
+              <Text className="text-gray-500 dark:text-gray-400 text-xs">
+                Pendiente
+              </Text>
+              <Text className="text-gray-700 dark:text-gray-200 text-xs font-semibold">
+                {fmt(remaining)}
+              </Text>
             </View>
           </TouchableOpacity>
         );

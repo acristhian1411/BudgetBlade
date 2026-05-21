@@ -7,10 +7,11 @@ import { getDb } from '../index';
  */
 export const createTransaction = async ({ tillId, amount, type, description, date, categoryId }) => {
   const db = await getDb();
-  await db.runAsync(
+  const result = await db.runAsync(
     'INSERT INTO transactions (till_id, amount, type, description, transaction_date, category_id) VALUES (?, ?, ?, ?, ?, ?)',
     [tillId, Math.abs(amount), type, description ?? '', date, categoryId ?? null]
   );
+  return result.lastInsertRowId;
 };
 
 /**

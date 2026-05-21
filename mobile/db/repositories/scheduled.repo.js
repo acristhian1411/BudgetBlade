@@ -47,9 +47,9 @@ export const createPlanWithInstallments = async (planData) => {
 
       await db.runAsync(
         `INSERT INTO scheduled_occurrences 
-         (plan_id, installment_number, due_date, type, amount, status) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [planId, i, dueDateStr, type, baseAmount || null, 'pending']
+         (plan_id, installment_number, due_date, type, amount, remaining_amount, status) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [planId, i, dueDateStr, type, baseAmount || null, baseAmount || null, 'pending']
       );
     }
   }
@@ -97,9 +97,9 @@ export const generateRollingOccurrences = async () => {
 
       await db.runAsync(
         `INSERT INTO scheduled_occurrences 
-         (plan_id, installment_number, due_date, type, amount, status) 
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [plan.id, occNum, dueDateStr, plan.type, plan.base_amount || null, 'pending']
+         (plan_id, installment_number, due_date, type, amount, remaining_amount, status) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [plan.id, occNum, dueDateStr, plan.type, plan.base_amount || null, plan.base_amount || null, 'pending']
       );
     }
   }
@@ -115,7 +115,9 @@ export const markOverdue = async () => {
   await db.runAsync(
     `UPDATE scheduled_occurrences 
      SET status = 'overdue' 
-     WHERE status = 'pending' AND due_date < ?`,
+     WHERE status IN ('pending', 'partially_paid')
+       AND due_date < ?
+       AND COALESCE(remaining_amount, amount, 0) > 0`,
     [today]
   );
 };
@@ -135,6 +137,7 @@ export const getPendingAndOverdue = async () => {
        so.due_date,
        so.type,
        so.amount,
+      COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
        so.status,
        so.transaction_id,
        sp.title,
@@ -148,7 +151,7 @@ export const getPendingAndOverdue = async () => {
      JOIN scheduled_plans sp ON sp.id = so.plan_id
      LEFT JOIN entities e ON e.id = sp.entity_id
      LEFT JOIN categories c ON c.id = sp.category_id
-     WHERE so.status IN ('pending', 'overdue')
+     WHERE so.status IN ('pending', 'partially_paid', 'overdue')
      ORDER BY so.due_date ASC`
   );
 };
@@ -173,6 +176,7 @@ export const getUpcomingOccurrences = async (days = 7) => {
        so.due_date,
        so.type,
        so.amount,
+      COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
        so.status,
        sp.title,
        sp.till_id,
@@ -182,24 +186,120 @@ export const getUpcomingOccurrences = async (days = 7) => {
      JOIN scheduled_plans sp ON sp.id = so.plan_id
      LEFT JOIN entities e ON e.id = sp.entity_id
      LEFT JOIN categories c ON c.id = sp.category_id
-     WHERE so.status = 'pending' AND so.due_date BETWEEN ? AND ?
+     WHERE so.status IN ('pending', 'partially_paid') AND so.due_date BETWEEN ? AND ?
      ORDER BY so.due_date ASC`,
     [today, futureDateStr]
   );
 };
 
 /**
- * Mark an occurrence as processed and link it to a transaction.
+ * Apply a payment to an occurrence and update remaining amount + status.
+ * @param {number} occurrenceId
+ * @param {number} transactionId
+ * @param {number} amountPaid
+ * @param {string} paymentDate
+ */
+export const applyOccurrencePayment = async (occurrenceId, transactionId, amountPaid, paymentDate) => {
+  const db = await getDb();
+  const paid = Number(amountPaid);
+
+  if (!Number.isFinite(paid) || paid <= 0) {
+    throw new Error('Monto de abono inválido.');
+  }
+
+  const occurrence = await db.getFirstAsync(
+    `SELECT id, amount, remaining_amount, status
+     FROM scheduled_occurrences
+     WHERE id = ?`,
+    [occurrenceId]
+  );
+
+  if (!occurrence) {
+    throw new Error('Cuota no encontrada.');
+  }
+
+  const currentRemaining = Number(
+    occurrence.remaining_amount ?? occurrence.amount ?? 0
+  );
+
+  if (paid > currentRemaining) {
+    throw new Error('El abono no puede ser mayor al saldo pendiente.');
+  }
+
+  const nextRemainingRaw = currentRemaining - paid;
+  const nextRemaining = Math.abs(nextRemainingRaw) < 0.000001 ? 0 : nextRemainingRaw;
+  const nextStatus = nextRemaining === 0 ? 'processed' : 'partially_paid';
+
+  await db.execAsync('BEGIN TRANSACTION');
+  try {
+    await db.runAsync(
+      `INSERT INTO scheduled_payments_mapping (occurrence_id, transaction_id, amount_paid, payment_date)
+       VALUES (?, ?, ?, ?)`,
+      [occurrenceId, transactionId, paid, paymentDate]
+    );
+
+    await db.runAsync(
+      `UPDATE scheduled_occurrences
+       SET remaining_amount = ?,
+           status = ?,
+           transaction_id = CASE WHEN transaction_id IS NULL THEN ? ELSE transaction_id END
+       WHERE id = ?`,
+      [nextRemaining, nextStatus, transactionId, occurrenceId]
+    );
+
+    await db.execAsync('COMMIT');
+  } catch (error) {
+    await db.execAsync('ROLLBACK');
+    throw error;
+  }
+
+  return {
+    remainingAmount: nextRemaining,
+    status: nextStatus,
+  };
+};
+
+/**
+ * Backward-compatible helper to fully process an occurrence.
  * @param {number} occurrenceId
  * @param {number} transactionId
  */
 export const processOccurrence = async (occurrenceId, transactionId) => {
   const db = await getDb();
-  await db.runAsync(
-    `UPDATE scheduled_occurrences 
-     SET status = 'processed', transaction_id = ? 
-     WHERE id = ?`,
-    [transactionId, occurrenceId]
+  const occurrence = await db.getFirstAsync(
+    `SELECT amount, remaining_amount FROM scheduled_occurrences WHERE id = ?`,
+    [occurrenceId]
+  );
+  const remaining = Number(occurrence?.remaining_amount ?? occurrence?.amount ?? 0);
+  if (remaining <= 0) {
+    return { remainingAmount: 0, status: 'processed' };
+  }
+  const today = new Date().toISOString().split('T')[0];
+  return applyOccurrencePayment(occurrenceId, transactionId, remaining, today);
+};
+
+/**
+ * Get payment mapping history for a specific occurrence.
+ * @param {number} occurrenceId
+ * @returns {Promise<Array>}
+ */
+export const getPaymentHistoryForOccurrence = async (occurrenceId) => {
+  const db = await getDb();
+  return db.getAllAsync(
+    `SELECT
+       spm.id,
+       spm.occurrence_id,
+       spm.transaction_id,
+       spm.amount_paid,
+       spm.payment_date,
+       t.description,
+       t.type,
+       t.till_id
+     FROM scheduled_payments_mapping spm
+     JOIN transactions t ON t.id = spm.transaction_id
+     WHERE spm.occurrence_id = ?
+     ORDER BY spm.payment_date ASC, spm.id ASC`,
+    [occurrenceId]
   );
 };
 
@@ -222,7 +322,7 @@ export const getAllPlans = async () => {
        e.name AS entity_name,
        c.name AS category_name,
        COUNT(so.id) AS total_occurrences,
-       COALESCE(SUM(CASE WHEN so.status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_count,
+      COALESCE(SUM(CASE WHEN so.status IN ('pending', 'partially_paid', 'overdue') THEN 1 ELSE 0 END), 0) AS pending_count,
        COALESCE(SUM(CASE WHEN so.status = 'processed' THEN 1 ELSE 0 END), 0) AS processed_count
      FROM scheduled_plans sp
      LEFT JOIN entities e ON e.id = sp.entity_id
@@ -263,6 +363,7 @@ export const getOccurrenceById = async (id) => {
   return db.getFirstAsync(
     `SELECT
        so.*,
+      COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
        sp.title,
        sp.category_id,
        sp.till_id,

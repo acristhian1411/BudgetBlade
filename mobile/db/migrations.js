@@ -16,6 +16,7 @@ const CATEGORIES_SEEDER = [
   { name: 'Educación', type: 'expense' },
   // Ingresos
   { name: 'Salario', type: 'income' },
+  { name: 'Ajustes', type: 'income' },
   { name: 'Ventas', type: 'income' },
   { name: 'Alquileres Cobrados', type: 'income' },
   { name: 'Intereses', type: 'income' },
@@ -167,5 +168,104 @@ export const initDB = async () => {
     );
 
     await db.execAsync('PRAGMA user_version = 2');
+  }
+
+  // Migrate to v3 if needed (partial payments support)
+  if (currentVersion < 3) {
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS scheduled_payments_mapping (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        occurrence_id INTEGER NOT NULL,
+        transaction_id INTEGER NOT NULL,
+        amount_paid REAL NOT NULL,
+        payment_date TEXT NOT NULL,
+        FOREIGN KEY(occurrence_id) REFERENCES scheduled_occurrences(id),
+        FOREIGN KEY(transaction_id) REFERENCES transactions(id)
+      );`
+    );
+
+    try {
+      await db.execAsync('ALTER TABLE scheduled_occurrences ADD COLUMN remaining_amount REAL;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    await db.runAsync(
+      `UPDATE scheduled_occurrences
+       SET remaining_amount = CASE
+         WHEN status = 'processed' THEN 0
+         ELSE COALESCE(amount, 0)
+       END
+       WHERE remaining_amount IS NULL`
+    );
+
+    await db.runAsync(
+      `INSERT INTO scheduled_payments_mapping (occurrence_id, transaction_id, amount_paid, payment_date)
+       SELECT so.id, so.transaction_id, COALESCE(so.amount, 0), so.due_date
+       FROM scheduled_occurrences so
+       WHERE so.transaction_id IS NOT NULL
+         AND NOT EXISTS (
+           SELECT 1
+           FROM scheduled_payments_mapping spm
+           WHERE spm.occurrence_id = so.id AND spm.transaction_id = so.transaction_id
+         )`
+    );
+
+    // Rebuild scheduled_occurrences to allow partially_paid in CHECK constraint.
+    await db.execAsync('PRAGMA foreign_keys = OFF');
+    try {
+      await db.execAsync('BEGIN TRANSACTION');
+      await db.execAsync(
+        `CREATE TABLE IF NOT EXISTS scheduled_occurrences_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          plan_id INTEGER,
+          installment_number INTEGER,
+          due_date TEXT NOT NULL,
+          type TEXT NOT NULL,
+          amount REAL,
+          remaining_amount REAL,
+          status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'partially_paid', 'processed', 'overdue')),
+          transaction_id INTEGER,
+          FOREIGN KEY(plan_id) REFERENCES scheduled_plans(id),
+          FOREIGN KEY(transaction_id) REFERENCES transactions(id)
+        );`
+      );
+
+      await db.execAsync(
+        `INSERT INTO scheduled_occurrences_new (
+          id,
+          plan_id,
+          installment_number,
+          due_date,
+          type,
+          amount,
+          remaining_amount,
+          status,
+          transaction_id
+        )
+        SELECT
+          id,
+          plan_id,
+          installment_number,
+          due_date,
+          type,
+          amount,
+          COALESCE(remaining_amount, CASE WHEN status = 'processed' THEN 0 ELSE COALESCE(amount, 0) END),
+          status,
+          transaction_id
+        FROM scheduled_occurrences`
+      );
+
+      await db.execAsync('DROP TABLE scheduled_occurrences');
+      await db.execAsync('ALTER TABLE scheduled_occurrences_new RENAME TO scheduled_occurrences');
+      await db.execAsync('COMMIT');
+    } catch (error) {
+      await db.execAsync('ROLLBACK');
+      throw error;
+    } finally {
+      await db.execAsync('PRAGMA foreign_keys = ON');
+    }
+
+    await db.execAsync('PRAGMA user_version = 3');
   }
 };

@@ -21,6 +21,7 @@ const BACKUP_TABLES = [
   'transactions',
   'scheduled_plans',
   'scheduled_occurrences',
+  'scheduled_payments_mapping',
 ];
 
 const TABLE_COLUMNS = {
@@ -63,8 +64,16 @@ const TABLE_COLUMNS = {
     'due_date',
     'type',
     'amount',
+    'remaining_amount',
     'status',
     'transaction_id',
+  ],
+  scheduled_payments_mapping: [
+    'id',
+    'occurrence_id',
+    'transaction_id',
+    'amount_paid',
+    'payment_date',
   ],
 };
 
@@ -76,6 +85,7 @@ const REQUIRED_COLUMNS = {
   transactions: ['id'],
   scheduled_plans: ['id'],
   scheduled_occurrences: ['id'],
+  scheduled_payments_mapping: ['id'],
 };
 
 const nullableString = z.string().nullable();
@@ -139,8 +149,17 @@ const ScheduledOccurrencesRowSchema = z.object({
   due_date: nullableString.optional(),
   type: nullableString.optional(),
   amount: nullableNumber.optional(),
+  remaining_amount: nullableNumber.optional(),
   status: nullableString.optional(),
   transaction_id: nullableNumber.optional(),
+}).strict();
+
+const ScheduledPaymentsMappingRowSchema = z.object({
+  id: z.number(),
+  occurrence_id: nullableNumber.optional(),
+  transaction_id: nullableNumber.optional(),
+  amount_paid: nullableNumber.optional(),
+  payment_date: nullableString.optional(),
 }).strict();
 
 const BackupTablesSchema = z.object({
@@ -151,6 +170,7 @@ const BackupTablesSchema = z.object({
   transactions: z.array(TransactionsRowSchema).optional(),
   scheduled_plans: z.array(ScheduledPlansRowSchema).optional(),
   scheduled_occurrences: z.array(ScheduledOccurrencesRowSchema).optional(),
+  scheduled_payments_mapping: z.array(ScheduledPaymentsMappingRowSchema).optional(),
 }).strict();
 
 const EncryptedBackupEnvelopeSchema = z.object({
@@ -182,9 +202,11 @@ const AUTOINCREMENT_TABLES = [
   'transactions',
   'scheduled_plans',
   'scheduled_occurrences',
+  'scheduled_payments_mapping',
 ];
 
 const DELETE_ORDER = [
+  'scheduled_payments_mapping',
   'scheduled_occurrences',
   'scheduled_plans',
   'transactions',
@@ -202,6 +224,7 @@ const INSERT_ORDER = [
   'transactions',
   'scheduled_plans',
   'scheduled_occurrences',
+  'scheduled_payments_mapping',
 ];
 
 const getTableColumns = async (db, table) => {

@@ -71,19 +71,21 @@ export const getEntitySummary = async (entityId) => {
   const rows = await db.getAllAsync(
     `SELECT
        COALESCE(SUM(CASE 
-         WHEN so.type = 'egreso' AND so.status = 'pending' THEN so.amount
+         WHEN so.type = 'egreso' AND so.status IN ('pending', 'partially_paid', 'overdue')
+         THEN COALESCE(so.remaining_amount, so.amount, 0)
          ELSE 0 
        END), 0) AS pending_egreso,
        COALESCE(SUM(CASE 
-         WHEN so.type = 'ingreso' AND so.status = 'pending' THEN so.amount
+         WHEN so.type = 'ingreso' AND so.status IN ('pending', 'partially_paid', 'overdue')
+         THEN COALESCE(so.remaining_amount, so.amount, 0)
          ELSE 0 
        END), 0) AS pending_ingreso,
        COALESCE(SUM(CASE 
-         WHEN so.type = 'egreso' AND so.status = 'processed' THEN so.amount
+         WHEN so.type = 'egreso' THEN (COALESCE(so.amount, 0) - COALESCE(so.remaining_amount, so.amount, 0))
          ELSE 0 
        END), 0) AS processed_egreso,
        COALESCE(SUM(CASE 
-         WHEN so.type = 'ingreso' AND so.status = 'processed' THEN so.amount
+         WHEN so.type = 'ingreso' THEN (COALESCE(so.amount, 0) - COALESCE(so.remaining_amount, so.amount, 0))
          ELSE 0 
        END), 0) AS processed_ingreso
      FROM scheduled_occurrences so
@@ -112,8 +114,8 @@ export const getInstallmentGroups = async (entityId) => {
     `SELECT
        sp.id AS plan_id,
        sp.title,
-       COUNT(CASE WHEN so.status = 'pending' THEN 1 END) AS pending_count,
-       COALESCE(SUM(CASE WHEN so.status = 'pending' THEN so.amount ELSE 0 END), 0) AS total_amount,
+       COUNT(CASE WHEN so.status IN ('pending', 'partially_paid', 'overdue') THEN 1 END) AS pending_count,
+       COALESCE(SUM(CASE WHEN so.status IN ('pending', 'partially_paid', 'overdue') THEN COALESCE(so.remaining_amount, so.amount, 0) ELSE 0 END), 0) AS total_amount,
        COALESCE(SUM(CASE WHEN so.status = 'processed' THEN 1 END), 0) AS processed_count
      FROM scheduled_plans sp
      LEFT JOIN scheduled_occurrences so ON so.plan_id = sp.id

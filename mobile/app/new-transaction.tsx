@@ -18,7 +18,7 @@ import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { getAllTills } from '@/db/repositories/till.repo';
 import { getAllCategories } from '@/db/repositories/category.repo';
 import { createTransaction, createTransfer } from '@/db/repositories/transaction.repo';
-import { getOccurrenceById, processOccurrence, getUpcomingOccurrences } from '@/db/repositories/scheduled.repo';
+import { getOccurrenceById, applyOccurrencePayment, getUpcomingOccurrences } from '@/db/repositories/scheduled.repo';
 import { scheduleOccurrenceNotifications } from '@/services/notifications.service';
 import { ThemedText } from '@/components/themed-text';
 
@@ -76,15 +76,16 @@ export default function NewTransactionScreen() {
       setLoadingOccurrence(true);
       (async () => {
         try {
-          const occ = await getOccurrenceById(parseInt(occurrenceId, 10));
+          const occ: any = await getOccurrenceById(parseInt(occurrenceId, 10));
           if (occ) {
             setLinkedOccurrence(occ);
             // Auto-fill form
             const occTxType = occ.type === 'ingreso' ? 'ingreso' : 'egreso';
             setTxType(occTxType);
             setTillId(occ.till_id);
-            if (occ.amount) {
-              setAmount(occ.amount.toString());
+            const prefillAmount = Number(occ.remaining_amount ?? occ.amount ?? 0);
+            if (prefillAmount > 0) {
+              setAmount(prefillAmount.toString());
             }
             setDescription(
               `Pago ${occ.title} - Cuota ${occ.installment_number || '?'}`
@@ -110,6 +111,13 @@ export default function NewTransactionScreen() {
       Alert.alert('Error', 'Ingresa un monto válido mayor a cero.');
       return;
     }
+    if (linkedOccurrence) {
+      const remaining = Number(linkedOccurrence.remaining_amount ?? linkedOccurrence.amount ?? 0);
+      if (numAmount > remaining) {
+        Alert.alert('Error', 'El monto no puede ser mayor al saldo pendiente de la cuota.');
+        return;
+      }
+    }
     if (txType === 'transferencia') {
       if (tills.length < 2) {
         Alert.alert('Error', 'Necesitas al menos 2 cuentas para hacer una transferencia.');
@@ -127,7 +135,7 @@ export default function NewTransactionScreen() {
         date: formatDate(date),
       });
     } else {
-      const result = await createTransaction({
+      const transactionId = await createTransaction({
         tillId: tillId!,
         amount: numAmount,
         type: txType,
@@ -136,23 +144,22 @@ export default function NewTransactionScreen() {
         categoryId,
       });
 
-      // If linked to an occurrence, mark it as processed
-      if (linkedOccurrence && result) {
+      // If linked to an occurrence, apply the payment amount.
+      if (linkedOccurrence && transactionId) {
         try {
-          // Get the ID of the newly inserted transaction
-          // We need to fetch it from the DB
-          const tx = await (await import('@/db/index').then(m => m.getDb()))().getFirstAsync(
-            'SELECT id FROM transactions WHERE till_id = ? AND amount = ? AND type = ? ORDER BY id DESC LIMIT 1',
-            [tillId, Math.abs(numAmount), txType]
+          await applyOccurrencePayment(
+            linkedOccurrence.id,
+            transactionId,
+            numAmount,
+            formatDate(date)
           );
-          if (tx) {
-            await processOccurrence(linkedOccurrence.id, tx.id);
-            // Re-schedule notifications
-            const upcoming = await getUpcomingOccurrences(30);
-            await scheduleOccurrenceNotifications(upcoming);
-          }
+          // Re-schedule notifications
+          const upcoming = await getUpcomingOccurrences(30);
+          await scheduleOccurrenceNotifications(upcoming);
         } catch (err) {
+          Alert.alert('Error', err instanceof Error ? err.message : 'No se pudo aplicar el pago parcial.');
           console.warn('Error processing occurrence:', err);
+          return;
         }
       }
     }
@@ -199,7 +206,7 @@ export default function NewTransactionScreen() {
             <ThemedText type="title">Nuevo movimiento</ThemedText>
             {linkedOccurrence && (
               <Text className="text-blue-600 dark:text-blue-400 text-xs mt-1">
-                Cerrando cuota {linkedOccurrence.installment_number}
+                Abonando cuota {linkedOccurrence.installment_number}
               </Text>
             )}
           </View>
@@ -280,6 +287,11 @@ export default function NewTransactionScreen() {
           onChangeText={setAmount}
           className="border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-black dark:text-white text-lg"
         />
+        {linkedOccurrence && (
+          <Text className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            Saldo pendiente: {Number(linkedOccurrence.remaining_amount ?? linkedOccurrence.amount ?? 0).toLocaleString('es-PY')}
+          </Text>
+        )}
 
         {/* Category picker */}
         {txType !== 'transferencia' && (
