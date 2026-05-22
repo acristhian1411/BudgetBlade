@@ -18,6 +18,7 @@ Construida con [Expo](https://expo.dev) y disponible en iOS, Android.
 
 - **Planes programados**: Crea planes de pagos recurrentes (servicios, suscripciones, préstamos)
 - **Instalaciones**: Divide pagos en múltiples cuotas con fechas específicas
+- **Pagos parciales**: Registra abonos parciales de compromisos y conserva el saldo pendiente actualizado
 - **Recordatorios inteligentes**: Notificaciones automáticas para compromisos vencidos
 - **Entidades asociadas**: Vincula proveedores y clientes a tus transacciones
 - **Estados de cumplimiento**: Seguimiento de pagos pendientes, procesados y atrasados
@@ -26,6 +27,7 @@ Construida con [Expo](https://expo.dev) y disponible en iOS, Android.
 ### 🏦 Gestión de Cuentas
 
 - **Múltiples tills**: Gestiona tarjetas de crédito, cuentas bancarias, billeteras, efectivo
+- **Tarjetas de crédito asociadas**: Vincula tarjetas de crédito a cuentas específicas para un mejor control del flujo real
 - **Números de cuenta**: Almacena información de cuenta para referencia
 - **Balances individuales**: Visualiza el estado de cada cuenta
 
@@ -62,6 +64,7 @@ Construida con [Expo](https://expo.dev) y disponible en iOS, Android.
 
 - **Tema adaptativo**: Soporte automático para modo claro/oscuro
 - **Interfaz intuitiva**: Diseño limpio con Tailwind CSS y NativeWind
+- **Privacidad visual en dashboard**: Oculta o muestra montos del panel principal con un botón rápido
 - **Navegación por tabs**: Acceso rápido a todas las funciones (Inicio, Compromisos, Cuentas, Historial, Ajustes)
 - **Feedback háptico**: Vibraciones al interactuar con elementos
 
@@ -77,6 +80,7 @@ Construida con [Expo](https://expo.dev) y disponible en iOS, Android.
 
 - **users**: Gestión de usuario con autenticación segura
 - **tills**: Cuentas/billeteras del usuario
+- **credit_cards**: Tarjetas de crédito asociadas a cuentas/tills
 - **transactions**: Registro de todas las operaciones
 - **categories**: Categorización de ingresos y egresos
 - **entities**: Clientes y proveedores
