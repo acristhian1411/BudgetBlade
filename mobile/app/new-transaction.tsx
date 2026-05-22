@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -17,12 +17,14 @@ import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 
 import { getAllTills } from '@/db/repositories/till.repo';
 import { getAllCategories } from '@/db/repositories/category.repo';
-import { createTransaction, createTransfer } from '@/db/repositories/transaction.repo';
+import { createTransaction, createTransfer, createCreditCardPayment } from '@/db/repositories/transaction.repo';
+import { getAllCreditCards, getCreditCardPendingPurchases } from '@/db/repositories/credit-card.repo';
 import { getOccurrenceById, applyOccurrencePayment, getUpcomingOccurrences } from '@/db/repositories/scheduled.repo';
 import { scheduleOccurrenceNotifications } from '@/services/notifications.service';
 import { ThemedText } from '@/components/themed-text';
 
 type TxType = 'ingreso' | 'egreso' | 'transferencia';
+type PaymentMethod = 'cash' | 'credit_card';
 
 const formatDate = (d: Date) => d.toISOString().split('T')[0];
 
@@ -31,8 +33,12 @@ export default function NewTransactionScreen() {
   const { occurrenceId } = useLocalSearchParams<{ occurrenceId?: string }>();
   
   const [tills, setTills] = useState<any[]>([]);
+  const [creditCards, setCreditCards] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [txType, setTxType] = useState<TxType>('ingreso');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
+  const [isCardPayment, setIsCardPayment] = useState(false);
+  const [creditCardId, setCreditCardId] = useState<number | null>(null);
   const [tillId, setTillId] = useState<number | null>(null);
   const [fromTillId, setFromTillId] = useState<number | null>(null);
   const [toTillId, setToTillId] = useState<number | null>(null);
@@ -42,8 +48,12 @@ export default function NewTransactionScreen() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTypePicker, setShowTypePicker] = useState(false);
+  const [showPaymentMethodPicker, setShowPaymentMethodPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
+  const [interestAmount, setInterestAmount] = useState('0');
+  const [pendingPurchases, setPendingPurchases] = useState<any[]>([]);
+  const [selectedPurchaseAmounts, setSelectedPurchaseAmounts] = useState<Record<string, string>>({});
   
   // Smart link state
   const [linkedOccurrence, setLinkedOccurrence] = useState<any>(null);
@@ -54,6 +64,18 @@ export default function NewTransactionScreen() {
     egreso: 'Egreso',
     transferencia: 'Transferencia',
   };
+  const availableCreditCards = useMemo(
+    () => (tillId ? creditCards.filter((card) => card.till_id === tillId) : creditCards),
+    [creditCards, tillId]
+  );
+  const selectedCapitalAmount = useMemo(
+    () => Object.values(selectedPurchaseAmounts).reduce((acc, value) => acc + (Number(value.replace(',', '.')) || 0), 0),
+    [selectedPurchaseAmounts]
+  );
+  const selectedInterestAmount = useMemo(
+    () => Number(interestAmount.replace(',', '.')) || 0,
+    [interestAmount]
+  );
 
   // Load tills and categories
   useFocusEffect(
@@ -66,9 +88,63 @@ export default function NewTransactionScreen() {
           setToTillId(data[1]?.id ?? data[0].id);
         }
       });
+      getAllCreditCards().then(setCreditCards);
       getAllCategories().then(setCategories);
     }, [])
   );
+
+  useEffect(() => {
+    if (txType !== 'egreso') {
+      setPaymentMethod('cash');
+      setIsCardPayment(false);
+      setCreditCardId(null);
+      return;
+    }
+
+    if (paymentMethod === 'credit_card' && availableCreditCards.length > 0 && !creditCardId) {
+      setCreditCardId(availableCreditCards[0].id);
+    }
+
+    if (paymentMethod === 'credit_card' && availableCreditCards.length > 0 && creditCardId) {
+      const selectedStillExists = availableCreditCards.some((card) => card.id === creditCardId);
+      if (!selectedStillExists) {
+        setCreditCardId(availableCreditCards[0].id);
+      }
+    }
+
+    if (paymentMethod === 'credit_card' && availableCreditCards.length === 0) {
+      setCreditCardId(null);
+    }
+  }, [txType, paymentMethod, availableCreditCards, creditCardId]);
+
+  useEffect(() => {
+    if (paymentMethod !== 'credit_card') {
+      setIsCardPayment(false);
+      setPendingPurchases([]);
+      setSelectedPurchaseAmounts({});
+      setInterestAmount('0');
+      return;
+    }
+
+    if (!isCardPayment || !creditCardId) {
+      setPendingPurchases([]);
+      setSelectedPurchaseAmounts({});
+      return;
+    }
+
+    getCreditCardPendingPurchases(creditCardId)
+      .then((rows) => setPendingPurchases(rows))
+      .catch((err) => {
+        console.warn('Error loading pending card purchases:', err);
+        setPendingPurchases([]);
+      });
+  }, [paymentMethod, isCardPayment, creditCardId]);
+
+  useEffect(() => {
+    if (!isCardPayment) return;
+    const total = selectedCapitalAmount + selectedInterestAmount;
+    setAmount(total > 0 ? String(total) : '');
+  }, [isCardPayment, selectedCapitalAmount, selectedInterestAmount]);
 
   // Load occurrence if linked
   useEffect(() => {
@@ -82,6 +158,8 @@ export default function NewTransactionScreen() {
             // Auto-fill form
             const occTxType = occ.type === 'ingreso' ? 'ingreso' : 'egreso';
             setTxType(occTxType);
+            setPaymentMethod('cash');
+            setIsCardPayment(false);
             setTillId(occ.till_id);
             const prefillAmount = Number(occ.remaining_amount ?? occ.amount ?? 0);
             if (prefillAmount > 0) {
@@ -111,6 +189,25 @@ export default function NewTransactionScreen() {
       Alert.alert('Error', 'Ingresa un monto válido mayor a cero.');
       return;
     }
+    if (txType === 'egreso' && paymentMethod === 'credit_card' && !creditCardId) {
+      Alert.alert('Error', 'Selecciona una tarjeta de crédito.');
+      return;
+    }
+    if (txType === 'egreso' && paymentMethod === 'credit_card' && isCardPayment) {
+      if (selectedCapitalAmount <= 0) {
+        Alert.alert('Error', 'Selecciona al menos una compra pendiente para pagar.');
+        return;
+      }
+      if (selectedInterestAmount < 0) {
+        Alert.alert('Error', 'El interés no puede ser negativo.');
+        return;
+      }
+      const expectedTotal = selectedCapitalAmount + selectedInterestAmount;
+      if (Math.abs(expectedTotal - numAmount) > 0.01) {
+        Alert.alert('Error', 'El monto debe coincidir con capital seleccionado + interés.');
+        return;
+      }
+    }
     if (linkedOccurrence) {
       const remaining = Number(linkedOccurrence.remaining_amount ?? linkedOccurrence.amount ?? 0);
       if (numAmount > remaining) {
@@ -135,6 +232,28 @@ export default function NewTransactionScreen() {
         date: formatDate(date),
       });
     } else {
+      if (txType === 'egreso' && paymentMethod === 'credit_card' && isCardPayment) {
+        const paymentItems = Object.entries(selectedPurchaseAmounts)
+          .map(([purchaseTransactionId, amountPaid]) => ({
+            purchaseTransactionId: Number(purchaseTransactionId),
+            amountPaid: Number(amountPaid.replace(',', '.')) || 0,
+          }))
+          .filter((item) => item.amountPaid > 0);
+
+        await createCreditCardPayment({
+          tillId: tillId!,
+          creditCardId: creditCardId!,
+          capitalAmount: selectedCapitalAmount,
+          interestAmount: selectedInterestAmount,
+          description: description || 'Pago de tarjeta',
+          date: formatDate(date),
+          paymentMethod: 'cash',
+          paymentItems,
+        });
+        router.back();
+        return;
+      }
+
       const transactionId = await createTransaction({
         tillId: tillId!,
         amount: numAmount,
@@ -142,6 +261,9 @@ export default function NewTransactionScreen() {
         description,
         date: formatDate(date),
         categoryId,
+        paymentMethod: txType === 'egreso' ? paymentMethod : 'cash',
+        creditCardId: txType === 'egreso' && paymentMethod === 'credit_card' ? creditCardId : null,
+        affectsBalance: txType === 'egreso' && paymentMethod === 'credit_card' ? 0 : 1,
       });
 
       // If linked to an occurrence, apply the payment amount.
@@ -164,6 +286,38 @@ export default function NewTransactionScreen() {
       }
     }
     router.back();
+  };
+
+  const togglePurchaseSelection = (purchase: any) => {
+    const key = String(purchase.id);
+    setSelectedPurchaseAmounts((prev) => {
+      const next = { ...prev };
+      if (Object.prototype.hasOwnProperty.call(next, key)) {
+        delete next[key];
+      } else {
+        next[key] = String(Number(purchase.pending_amount ?? 0));
+      }
+      return next;
+    });
+  };
+
+  const updateSelectedPurchaseAmount = (purchaseId: number, value: string, pendingLimit: number) => {
+    const normalized = value.replace(/[^\d.,]/g, '').replace(',', '.');
+    const numeric = Number(normalized);
+    const key = String(purchaseId);
+
+    if (!normalized) {
+      setSelectedPurchaseAmounts((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      return;
+    }
+
+    if (Number.isNaN(numeric) || numeric <= 0) return;
+    const capped = Math.min(numeric, pendingLimit);
+    setSelectedPurchaseAmounts((prev) => ({ ...prev, [key]: String(capped) }));
   };
 
   function TillPicker({
@@ -277,6 +431,172 @@ export default function NewTransactionScreen() {
           </>
         )}
 
+        {txType === 'egreso' && (
+          <>
+            <ThemedText type="defaultSemiBold" className="mt-5 mb-2">Método de pago</ThemedText>
+            <TouchableOpacity
+              onPress={() => setShowPaymentMethodPicker(true)}
+              className="flex-row justify-between items-center border border-gray-300 dark:border-gray-600 rounded-xl p-3 mb-1">
+              <Text className="text-black dark:text-white text-base">
+                {paymentMethod === 'credit_card' ? 'Tarjeta de crédito' : 'Efectivo / Débito'}
+              </Text>
+              <Text className="text-gray-400">▼</Text>
+            </TouchableOpacity>
+          </>
+        )}
+
+        <Modal visible={showPaymentMethodPicker} transparent animationType="fade">
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setShowPaymentMethodPicker(false)}
+            className="flex-1 justify-center items-center bg-black/40">
+            <View className="bg-white dark:bg-neutral-800 rounded-2xl w-72 overflow-hidden">
+              {[
+                { id: 'cash', label: 'Efectivo / Débito' },
+                { id: 'credit_card', label: 'Tarjeta de crédito' },
+              ].map((method) => (
+                <TouchableOpacity
+                  key={method.id}
+                  onPress={() => {
+                    const nextMethod = method.id as PaymentMethod;
+                    setPaymentMethod(nextMethod);
+                    if (nextMethod !== 'credit_card') {
+                      setCreditCardId(null);
+                    }
+                    setShowPaymentMethodPicker(false);
+                  }}
+                  className={`px-5 py-4 border-b border-gray-100 dark:border-neutral-700 ${
+                    paymentMethod === method.id ? 'bg-blue-50 dark:bg-blue-900/30' : ''
+                  }`}>
+                  <Text
+                    className={`text-base ${
+                      paymentMethod === method.id
+                        ? 'font-semibold text-blue-600 dark:text-blue-400'
+                        : 'text-gray-700 dark:text-gray-200'
+                    }`}>
+                    {method.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        {txType === 'egreso' && paymentMethod === 'credit_card' && (
+          <>
+            <ThemedText type="defaultSemiBold" className="mt-4 mb-2">Tarjeta</ThemedText>
+            <View className="flex-row flex-wrap gap-2">
+              {availableCreditCards.length === 0 ? (
+                <Text className="text-xs text-amber-600 dark:text-amber-400">
+                  No hay tarjetas creadas. Crea una en la pestaña Cuentas.
+                </Text>
+              ) : (
+                availableCreditCards.map((card) => (
+                  <TouchableOpacity
+                    key={card.id}
+                    onPress={() => setCreditCardId(card.id)}
+                    className={`px-3 py-2 rounded-xl border ${
+                      creditCardId === card.id
+                        ? 'bg-blue-600 border-blue-600'
+                        : 'bg-white dark:bg-neutral-700 border-gray-300 dark:border-neutral-600'
+                    }`}>
+                    <Text className={creditCardId === card.id ? 'text-white' : 'text-gray-700 dark:text-gray-200'}>
+                      {card.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))
+              )}
+            </View>
+            <Text className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              Las compras con tarjeta registran gasto, pero no descuentan saldo bancario hasta el pago.
+            </Text>
+
+            <View className="mt-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-3">
+              <TouchableOpacity
+                onPress={() => setIsCardPayment((prev) => !prev)}
+                className="flex-row items-center justify-between">
+                <Text className="text-blue-800 dark:text-blue-200 font-semibold">
+                  Registrar como pago de tarjeta
+                </Text>
+                <Text className="text-blue-700 dark:text-blue-300 font-bold">
+                  {isCardPayment ? 'SI' : 'NO'}
+                </Text>
+              </TouchableOpacity>
+              <Text className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                Activa esta opción para conciliar compras pendientes y separar intereses.
+              </Text>
+            </View>
+
+            {isCardPayment && (
+              <View className="mt-4">
+                <ThemedText type="defaultSemiBold" className="mb-2">Compras pendientes</ThemedText>
+                {pendingPurchases.length === 0 ? (
+                  <Text className="text-xs text-gray-500 dark:text-gray-400">
+                    No hay compras pendientes para esta tarjeta.
+                  </Text>
+                ) : (
+                  pendingPurchases.map((purchase) => {
+                    const key = String(purchase.id);
+                    const isSelected = Object.prototype.hasOwnProperty.call(selectedPurchaseAmounts, key);
+                    return (
+                      <TouchableOpacity
+                        key={purchase.id}
+                        activeOpacity={0.85}
+                        onPress={() => togglePurchaseSelection(purchase)}
+                        className={`rounded-xl border p-3 mb-2 ${
+                          isSelected
+                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                            : 'border-gray-200 dark:border-neutral-700 bg-white dark:bg-neutral-800'
+                        }`}>
+                        <View className="flex-row justify-between items-start mb-1">
+                          <Text className="text-black dark:text-white font-medium flex-1 mr-2" numberOfLines={1}>
+                            {purchase.description || 'Compra sin descripción'}
+                          </Text>
+                          <Text className="text-gray-500 dark:text-gray-300 text-xs">
+                            {purchase.transaction_date}
+                          </Text>
+                        </View>
+                        <Text className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                          Pendiente: {Number(purchase.pending_amount).toLocaleString('es-PY')}
+                        </Text>
+                        {isSelected && (
+                          <TextInput
+                            value={selectedPurchaseAmounts[key] ?? ''}
+                            onChangeText={(value) =>
+                              updateSelectedPurchaseAmount(
+                                purchase.id,
+                                value,
+                                Number(purchase.pending_amount ?? 0)
+                              )
+                            }
+                            keyboardType="decimal-pad"
+                            placeholder="Monto a pagar de esta compra"
+                            placeholderTextColor="#9CA3AF"
+                            className="border border-blue-300 dark:border-blue-700 rounded-lg p-2 text-black dark:text-white"
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })
+                )}
+
+                <ThemedText type="defaultSemiBold" className="mt-2 mb-2">Interés (opcional)</ThemedText>
+                <TextInput
+                  placeholder="0"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="decimal-pad"
+                  value={interestAmount}
+                  onChangeText={setInterestAmount}
+                  className="border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-black dark:text-white"
+                />
+                <Text className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Capital: {selectedCapitalAmount.toLocaleString('es-PY')} · Interés: {selectedInterestAmount.toLocaleString('es-PY')} · Total: {(selectedCapitalAmount + selectedInterestAmount).toLocaleString('es-PY')}
+                </Text>
+              </View>
+            )}
+          </>
+        )}
+
         {/* Amount */}
         <ThemedText type="defaultSemiBold" className="mt-5 mb-2">Monto</ThemedText>
         <TextInput
@@ -294,7 +614,7 @@ export default function NewTransactionScreen() {
         )}
 
         {/* Category picker */}
-        {txType !== 'transferencia' && (
+        {txType !== 'transferencia' && !(txType === 'egreso' && paymentMethod === 'credit_card' && isCardPayment) && (
           <>
             <ThemedText type="defaultSemiBold" className="mt-5 mb-2">Categoría</ThemedText>
             <TouchableOpacity

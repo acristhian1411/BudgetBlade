@@ -9,8 +9,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
-import { useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 
 import { getTransactions, deleteTransaction } from '@/db/repositories/transaction.repo';
 import { getAllTills } from '@/db/repositories/till.repo';
@@ -185,6 +184,13 @@ export default function TransactionsScreen() {
               <Text className="text-gray-400 text-xs">
                 {item.till_name} · {item.transaction_date}
               </Text>
+              {!!item.payment_method && item.type === 'egreso' && (
+                <Text className="text-gray-500 text-xs mt-0.5">
+                  {item.payment_method === 'credit_card'
+                    ? `Tarjeta${item.credit_card_name ? ` · ${item.credit_card_name}` : ''}`
+                    : 'Efectivo / Débito'}
+                </Text>
+              )}
             </View>
             <View className="items-end">
               <Text

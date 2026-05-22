@@ -33,7 +33,7 @@ export const getTillsWithBalances = async () => {
         END
       ), 0) AS balance
     FROM tills t
-    LEFT JOIN transactions tx ON tx.till_id = t.id
+    LEFT JOIN transactions tx ON tx.till_id = t.id AND COALESCE(tx.affects_balance, 1) = 1
     GROUP BY t.id
     ORDER BY t.name
   `);

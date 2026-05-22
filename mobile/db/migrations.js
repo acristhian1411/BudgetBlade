@@ -14,6 +14,11 @@ const CATEGORIES_SEEDER = [
   { name: 'Préstamos', type: 'expense' },
   { name: 'Ocio', type: 'expense' },
   { name: 'Educación', type: 'expense' },
+  { name: 'Impuestos', type: 'expense' },
+  { name: 'Pago de tarjetas', type: 'expense' },
+  { name: 'Intereses de tarjeta', type: 'expense' },
+  { name: 'Intereses', type: 'expense' },
+  { name: 'Otros', type: 'expense' },
   // Ingresos
   { name: 'Salario', type: 'income' },
   { name: 'Ajustes', type: 'income' },
@@ -267,5 +272,82 @@ export const initDB = async () => {
     }
 
     await db.execAsync('PRAGMA user_version = 3');
+  }
+
+  // Migrate to v4 if needed (credit cards support)
+  if (currentVersion < 4) {
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS credit_cards (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        till_id INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        credit_limit REAL NOT NULL DEFAULT 0,
+        FOREIGN KEY(till_id) REFERENCES tills(id)
+      );`
+    );
+
+    try {
+      await db.execAsync('ALTER TABLE transactions ADD COLUMN payment_method TEXT;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    try {
+      await db.execAsync('ALTER TABLE transactions ADD COLUMN credit_card_id INTEGER;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    try {
+      await db.execAsync('ALTER TABLE transactions ADD COLUMN affects_balance INTEGER DEFAULT 1;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    try {
+      await db.execAsync('ALTER TABLE transactions ADD COLUMN parent_transaction_id INTEGER;');
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS credit_card_payment_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        credit_card_id INTEGER NOT NULL,
+        purchase_transaction_id INTEGER NOT NULL,
+        payment_transaction_id INTEGER NOT NULL,
+        amount_paid REAL NOT NULL,
+        FOREIGN KEY(credit_card_id) REFERENCES credit_cards(id),
+        FOREIGN KEY(purchase_transaction_id) REFERENCES transactions(id),
+        FOREIGN KEY(payment_transaction_id) REFERENCES transactions(id)
+      );`
+    );
+
+    await db.runAsync(
+      `UPDATE transactions
+       SET affects_balance = 1
+       WHERE affects_balance IS NULL`
+    );
+
+    await db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_transactions_affects_balance ON transactions(affects_balance);'
+    );
+    await db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_transactions_credit_card ON transactions(credit_card_id);'
+    );
+    await db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_transactions_payment_method ON transactions(payment_method);'
+    );
+    await db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_credit_card_payment_items_card ON credit_card_payment_items(credit_card_id);'
+    );
+    await db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_credit_card_payment_items_purchase ON credit_card_payment_items(purchase_transaction_id);'
+    );
+    await db.execAsync(
+      'CREATE INDEX IF NOT EXISTS idx_credit_card_payment_items_payment ON credit_card_payment_items(payment_transaction_id);'
+    );
+
+    await db.execAsync('PRAGMA user_version = 4');
   }
 };

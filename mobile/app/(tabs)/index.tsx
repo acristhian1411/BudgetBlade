@@ -9,10 +9,10 @@ import {
   FlatList,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import { getTotal, getTotalByCategory, getLastN, deleteTransaction } from '@/db/repositories/transaction.repo';
+import { getCreditCardsDebtSummary } from '@/db/repositories/credit-card.repo';
 import { getUpcomingOccurrences, getPendingAndOverdue } from '@/db/repositories/scheduled.repo';
 import { ThemedText } from '@/components/themed-text';
 
@@ -29,22 +29,26 @@ export default function DashboardScreen() {
   const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState({ banco: 0, efectivo: 0 });
   const [recent, setRecent] = useState<any[]>([]);
+  const [creditCardDebts, setCreditCardDebts] = useState<any[]>([]);
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [allPendingOverdue, setAllPendingOverdue] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
+  const [showAmounts, setShowAmounts] = useState(true);
 
   const load = useCallback(async () => {
     try {
-      const [t, c, r, up, all] = await Promise.all([
+      const [t, c, r, debts, up, all] = await Promise.all([
         getTotal(),
         getTotalByCategory(),
         getLastN(5),
+        getCreditCardsDebtSummary(),
         getUpcomingOccurrences(7),
         getPendingAndOverdue(),
       ]);
       setTotal(t);
       setCategories(c);
       setRecent(r);
+      setCreditCardDebts(debts);
       setUpcoming(up);
       setAllPendingOverdue(all);
     } catch (err) {
@@ -73,6 +77,10 @@ export default function DashboardScreen() {
 
   const overdueCount = allPendingOverdue.filter((o) => o.status === 'overdue').length;
 
+  const displayAmount = (value: number) => (showAmounts ? fmt(value) : '***');
+  const displaySignedAmount = (value: number, sign: string) => (showAmounts ? `${sign} ${fmt(value)}` : `${sign} ***`);
+  const totalDebt = creditCardDebts.reduce((acc, item) => acc + Number(item.pending_debt ?? 0), 0);
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50 dark:bg-neutral-900">
       <ScrollView
@@ -80,24 +88,63 @@ export default function DashboardScreen() {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
 
-        <ThemedText type="title" className="mb-4">Dashboard</ThemedText>
+        <View className="flex-row justify-between items-center mb-4">
+          <ThemedText type="title">Dashboard</ThemedText>
+          <TouchableOpacity
+            onPress={() => setShowAmounts((prev) => !prev)}
+            className="px-3 py-2 rounded-full bg-white dark:bg-neutral-800 border border-gray-200 dark:border-neutral-700">
+            <Text className="text-xs font-semibold text-gray-700 dark:text-gray-200">
+              {showAmounts ? 'Ocultar montos' : 'Mostrar montos'}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Saldo total */}
         <View className="bg-blue-600 rounded-2xl p-6 mb-4">
           <Text className="text-blue-100 text-sm mb-1">Saldo Total</Text>
-          <Text className="text-white text-3xl font-bold">{fmt(total)}</Text>
+          <Text className="text-white text-3xl font-bold">{displayAmount(total)}</Text>
         </View>
 
         {/* Efectivo vs Bancos */}
         <View className="flex-row gap-3 mb-6">
           <View className="flex-1 bg-emerald-50 dark:bg-emerald-900/40 border border-emerald-200 dark:border-emerald-700 rounded-2xl p-4">
             <Text className="text-emerald-700 dark:text-emerald-300 text-xs mb-1">Efectivo</Text>
-            <Text className="text-emerald-800 dark:text-emerald-100 text-lg font-bold">{fmt(categories.efectivo)}</Text>
+            <Text className="text-emerald-800 dark:text-emerald-100 text-lg font-bold">{displayAmount(categories.efectivo)}</Text>
           </View>
           <View className="flex-1 bg-violet-50 dark:bg-violet-900/40 border border-violet-200 dark:border-violet-700 rounded-2xl p-4">
             <Text className="text-violet-700 dark:text-violet-300 text-xs mb-1">Bancos</Text>
-            <Text className="text-violet-800 dark:text-violet-100 text-lg font-bold">{fmt(categories.banco)}</Text>
+            <Text className="text-violet-800 dark:text-violet-100 text-lg font-bold">{displayAmount(categories.banco)}</Text>
           </View>
+        </View>
+
+        <View className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-2xl p-4 mb-6">
+          <View className="flex-row justify-between items-center mb-2">
+            <Text className="text-amber-700 dark:text-amber-200 text-sm font-semibold">
+              Deuda pendiente en tarjetas
+            </Text>
+            <Text className="text-amber-800 dark:text-amber-100 font-bold">
+              {displayAmount(totalDebt)}
+            </Text>
+          </View>
+          {creditCardDebts.length === 0 ? (
+            <Text className="text-amber-700/80 dark:text-amber-100/80 text-xs">
+              No hay tarjetas registradas.
+            </Text>
+          ) : (
+            creditCardDebts
+              .filter((item) => Number(item.pending_debt ?? 0) > 0)
+              .slice(0, 3)
+              .map((item) => (
+                <View key={item.id} className="flex-row justify-between items-center py-1">
+                  <Text className="text-amber-800 dark:text-amber-100 text-xs" numberOfLines={1}>
+                    {item.name}
+                  </Text>
+                  <Text className="text-amber-900 dark:text-amber-50 text-xs font-semibold">
+                    {displayAmount(Number(item.pending_debt ?? 0))}
+                  </Text>
+                </View>
+              ))
+          )}
         </View>
 
         {/* Compromisos próximos */}
@@ -135,7 +182,7 @@ export default function DashboardScreen() {
                     </Text>
                     {item.amount && (
                       <Text className="font-bold text-lg">
-                        {item.type === 'ingreso' ? '+' : '−'} {fmt(item.amount)}
+                        {displaySignedAmount(item.amount, item.type === 'ingreso' ? '+' : '−')}
                       </Text>
                     )}
                   </View>
@@ -173,8 +220,9 @@ export default function DashboardScreen() {
                     ? 'text-red-500'
                     : 'text-gray-400'
                 }`}>
-                {tx.type === 'ingreso' ? '+' : tx.type === 'egreso' ? '−' : ''}
-                {fmt(Math.abs(tx.amount))}
+                {showAmounts
+                  ? `${tx.type === 'ingreso' ? '+' : tx.type === 'egreso' ? '−' : ''}${fmt(Math.abs(tx.amount))}`
+                  : '***'}
               </Text>
             </TouchableOpacity>
           ))

@@ -18,10 +18,12 @@ const BACKUP_TABLES = [
   'tills',
   'categories',
   'entities',
+  'credit_cards',
   'transactions',
   'scheduled_plans',
   'scheduled_occurrences',
   'scheduled_payments_mapping',
+  'credit_card_payment_items',
 ];
 
 const TABLE_COLUMNS = {
@@ -37,6 +39,7 @@ const TABLE_COLUMNS = {
   tills: ['id', 'name', 'account_number'],
   categories: ['id', 'name', 'type'],
   entities: ['id', 'name', 'type', 'contact'],
+  credit_cards: ['id', 'till_id', 'name', 'credit_limit'],
   transactions: [
     'id',
     'till_id',
@@ -46,6 +49,10 @@ const TABLE_COLUMNS = {
     'transfer_id',
     'transaction_date',
     'category_id',
+    'payment_method',
+    'credit_card_id',
+    'affects_balance',
+    'parent_transaction_id',
   ],
   scheduled_plans: [
     'id',
@@ -75,6 +82,13 @@ const TABLE_COLUMNS = {
     'amount_paid',
     'payment_date',
   ],
+  credit_card_payment_items: [
+    'id',
+    'credit_card_id',
+    'purchase_transaction_id',
+    'payment_transaction_id',
+    'amount_paid',
+  ],
 };
 
 const REQUIRED_COLUMNS = {
@@ -82,10 +96,12 @@ const REQUIRED_COLUMNS = {
   tills: ['id'],
   categories: ['id'],
   entities: ['id'],
+  credit_cards: ['id'],
   transactions: ['id'],
   scheduled_plans: ['id'],
   scheduled_occurrences: ['id'],
   scheduled_payments_mapping: ['id'],
+  credit_card_payment_items: ['id'],
 };
 
 const nullableString = z.string().nullable();
@@ -120,6 +136,13 @@ const EntitiesRowSchema = z.object({
   contact: nullableString.optional(),
 }).strict();
 
+const CreditCardsRowSchema = z.object({
+  id: z.number(),
+  till_id: nullableNumber.optional(),
+  name: nullableString.optional(),
+  credit_limit: nullableNumber.optional(),
+}).strict();
+
 const TransactionsRowSchema = z.object({
   id: z.number(),
   till_id: nullableNumber.optional(),
@@ -129,6 +152,10 @@ const TransactionsRowSchema = z.object({
   transfer_id: nullableString.optional(),
   transaction_date: nullableString.optional(),
   category_id: nullableNumber.optional(),
+  payment_method: nullableString.optional(),
+  credit_card_id: nullableNumber.optional(),
+  affects_balance: nullableNumber.optional(),
+  parent_transaction_id: nullableNumber.optional(),
 }).strict();
 
 const ScheduledPlansRowSchema = z.object({
@@ -162,15 +189,25 @@ const ScheduledPaymentsMappingRowSchema = z.object({
   payment_date: nullableString.optional(),
 }).strict();
 
+const CreditCardPaymentItemsRowSchema = z.object({
+  id: z.number(),
+  credit_card_id: nullableNumber.optional(),
+  purchase_transaction_id: nullableNumber.optional(),
+  payment_transaction_id: nullableNumber.optional(),
+  amount_paid: nullableNumber.optional(),
+}).strict();
+
 const BackupTablesSchema = z.object({
   users: z.array(UsersRowSchema).optional(),
   tills: z.array(TillsRowSchema).optional(),
   categories: z.array(CategoriesRowSchema).optional(),
   entities: z.array(EntitiesRowSchema).optional(),
+  credit_cards: z.array(CreditCardsRowSchema).optional(),
   transactions: z.array(TransactionsRowSchema).optional(),
   scheduled_plans: z.array(ScheduledPlansRowSchema).optional(),
   scheduled_occurrences: z.array(ScheduledOccurrencesRowSchema).optional(),
   scheduled_payments_mapping: z.array(ScheduledPaymentsMappingRowSchema).optional(),
+  credit_card_payment_items: z.array(CreditCardPaymentItemsRowSchema).optional(),
 }).strict();
 
 const EncryptedBackupEnvelopeSchema = z.object({
@@ -199,17 +236,21 @@ const AUTOINCREMENT_TABLES = [
   'tills',
   'categories',
   'entities',
+  'credit_cards',
   'transactions',
   'scheduled_plans',
   'scheduled_occurrences',
   'scheduled_payments_mapping',
+  'credit_card_payment_items',
 ];
 
 const DELETE_ORDER = [
+  'credit_card_payment_items',
   'scheduled_payments_mapping',
   'scheduled_occurrences',
   'scheduled_plans',
   'transactions',
+  'credit_cards',
   'entities',
   'categories',
   'tills',
@@ -221,10 +262,12 @@ const INSERT_ORDER = [
   'tills',
   'categories',
   'entities',
+  'credit_cards',
   'transactions',
   'scheduled_plans',
   'scheduled_occurrences',
   'scheduled_payments_mapping',
+  'credit_card_payment_items',
 ];
 
 const getTableColumns = async (db, table) => {
