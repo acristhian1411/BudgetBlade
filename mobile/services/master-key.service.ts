@@ -11,7 +11,7 @@ const WRAP_ALGORITHM = 'AES-256-GCM';
 const WRAP_KDF = 'PBKDF2-SHA256';
 // Pragmatic tradeoff: dev=fast testing, prod=strong protection
 // In prod (1-2s delay is acceptable for security-critical operations)
-const WRAP_ITERATIONS = __DEV__ ? 5000 : 210000;
+const WRAP_ITERATIONS = __DEV__ ? 5000 : 10000;
 const WRAP_SALT_SIZE = 16;
 const WRAP_NONCE_SIZE = 12;
 const MASTER_KEY_SIZE = 32;
