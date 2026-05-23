@@ -63,6 +63,7 @@ const TABLE_COLUMNS = {
     'base_amount',
     'total_installments',
     'start_date',
+    'type',
   ],
   scheduled_occurrences: [
     'id',
@@ -167,6 +168,7 @@ const ScheduledPlansRowSchema = z.object({
   base_amount: nullableNumber.optional(),
   total_installments: nullableNumber.optional(),
   start_date: nullableString.optional(),
+  type: nullableString.optional(),
 }).strict();
 
 const ScheduledOccurrencesRowSchema = z.object({

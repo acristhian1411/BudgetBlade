@@ -24,6 +24,7 @@ import {
   deletePlan,
   createPlanWithInstallments,
   getOccurrencesByPlanId,
+  updateOccurrence,
 } from '@/db/repositories/scheduled.repo';
 import {
   getAllEntities,
@@ -64,6 +65,16 @@ export default function CompromisosScreen() {
   const [showEntityModal, setShowEntityModal] = useState(false);
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showEntityDetailsModal, setShowEntityDetailsModal] = useState(false);
+  const [showEditOccurrenceModal, setShowEditOccurrenceModal] = useState(false);
+
+  // Edit occurrence form state
+  const [editingOccurrence, setEditingOccurrence] = useState<any>(null);
+  const [editDueDate, setEditDueDate] = useState(new Date());
+  const [editAmount, setEditAmount] = useState('');
+  const [editRemainingAmount, setEditRemainingAmount] = useState('');
+  const [editType, setEditType] = useState<'ingreso' | 'egreso'>('egreso');
+  const [editStatus, setEditStatus] = useState<'pending' | 'overdue' | 'partially_paid' | 'processed'>('pending');
+  const [showEditDatePicker, setShowEditDatePicker] = useState(false);
 
   // Form states
   const [selectedEntity, setSelectedEntity] = useState<any>(null);
@@ -247,6 +258,52 @@ export default function CompromisosScreen() {
     ]);
   };
 
+  const openEditOccurrence = (item: any) => {
+    setEditingOccurrence(item);
+    setEditDueDate(new Date(item.due_date));
+    setEditAmount(item.amount != null ? String(item.amount) : '');
+    setEditRemainingAmount(item.remaining_amount != null ? String(item.remaining_amount) : '');
+    setEditType(item.type === 'ingreso' ? 'ingreso' : 'egreso');
+    setEditStatus(item.status);
+    setShowEditOccurrenceModal(true);
+  };
+
+  const handleUpdateOccurrence = async () => {
+    if (!editingOccurrence) return;
+
+    const amount = editAmount ? parseFloat(editAmount.replace(',', '.')) : null;
+    const remaining = editRemainingAmount ? parseFloat(editRemainingAmount.replace(',', '.')) : null;
+
+    if (editAmount && (amount === null || isNaN(amount!) || amount! < 0)) {
+      Alert.alert('Error', 'Monto inválido');
+      return;
+    }
+    if (editRemainingAmount && (remaining === null || isNaN(remaining!) || remaining! < 0)) {
+      Alert.alert('Error', 'Saldo pendiente inválido');
+      return;
+    }
+    if (amount !== null && remaining !== null && remaining > amount) {
+      Alert.alert('Error', 'El saldo pendiente no puede ser mayor al monto total');
+      return;
+    }
+
+    try {
+      await updateOccurrence(editingOccurrence.id, {
+        dueDate: editDueDate.toISOString().split('T')[0],
+        type: editType,
+        amount: amount,
+        remainingAmount: remaining,
+        status: editStatus,
+      });
+      setShowEditOccurrenceModal(false);
+      setEditingOccurrence(null);
+      await load();
+    } catch (err) {
+      console.warn('Error updating occurrence:', err);
+      Alert.alert('Error', 'No se pudo actualizar el vencimiento');
+    }
+  };
+
   // Render tabs
   const renderVencimientos = () => (
     <FlatList
@@ -259,6 +316,12 @@ export default function CompromisosScreen() {
         return (
           <TouchableOpacity
             onPress={() => router.push(`/new-transaction?occurrenceId=${item.id}`)}
+            onLongPress={() =>
+              Alert.alert(item.title, `Cuota ${item.installment_number}`, [
+                { text: 'Cancelar', style: 'cancel' },
+                { text: 'Editar', onPress: () => openEditOccurrence(item) },
+              ])
+            }
             activeOpacity={0.7}
             className="bg-white dark:bg-neutral-800 rounded-xl p-4 mb-3 border-l-4"
             style={{
@@ -795,8 +858,7 @@ export default function CompromisosScreen() {
       </Modal>
 
       {/* Entity Details Modal */}
-      <Modal visible={showEntityDetailsModal} transparent animationType="slide">
-        <SafeAreaView className="flex-1 bg-white dark:bg-neutral-900">
+      <Modal visible={showEntityDetailsModal} transparent animationType="slide">        <SafeAreaView className="flex-1 bg-white dark:bg-neutral-900">
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
             <View className="flex-row justify-between items-center mb-5">
               <ThemedText type="title">{selectedEntity?.name}</ThemedText>
@@ -838,6 +900,144 @@ export default function CompromisosScreen() {
                 </View>
               </>
             )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* Edit Occurrence Modal */}
+      <Modal visible={showEditOccurrenceModal} transparent animationType="slide">
+        <SafeAreaView className="flex-1 bg-white dark:bg-neutral-900">
+          <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 40 }}>
+            <View className="flex-row justify-between items-center mb-5">
+              <ThemedText type="title">Editar vencimiento</ThemedText>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowEditOccurrenceModal(false);
+                  setEditingOccurrence(null);
+                }}>
+                <Text className="text-gray-400 text-xl">✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {editingOccurrence && (
+              <Text className="text-gray-500 dark:text-gray-400 text-sm mb-5">
+                {editingOccurrence.title} · Cuota {editingOccurrence.installment_number}
+              </Text>
+            )}
+
+            {/* Fecha de vencimiento */}
+            <ThemedText type="defaultSemiBold" className="mb-2">
+              Fecha de vencimiento
+            </ThemedText>
+            <TouchableOpacity
+              onPress={() => setShowEditDatePicker(true)}
+              className="border border-gray-300 dark:border-gray-600 rounded-xl p-3 mb-4">
+              <Text className="text-black dark:text-white">
+                {editDueDate.toLocaleDateString('es-PY')}
+              </Text>
+            </TouchableOpacity>
+            {showEditDatePicker && (
+              <DateTimePicker
+                value={editDueDate}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(_, selected) => {
+                  setShowEditDatePicker(Platform.OS === 'ios');
+                  if (selected) setEditDueDate(selected);
+                }}
+              />
+            )}
+
+            {/* Tipo */}
+            <ThemedText type="defaultSemiBold" className="mb-2">
+              Tipo
+            </ThemedText>
+            <View className="flex-row gap-2 mb-4">
+              {(['ingreso', 'egreso'] as const).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  onPress={() => setEditType(type)}
+                  className={`flex-1 py-2 px-3 rounded-lg border ${
+                    editType === type
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}>
+                  <Text
+                    className={`text-center text-sm capitalize ${
+                      editType === type
+                        ? 'text-white font-semibold'
+                        : 'text-gray-700 dark:text-gray-200'
+                    }`}>
+                    {type === 'ingreso' ? 'Ingreso' : 'Egreso'}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Estado */}
+            <ThemedText type="defaultSemiBold" className="mb-2">
+              Estado
+            </ThemedText>
+            <View className="flex-row flex-wrap gap-2 mb-4">
+              {(
+                [
+                  { value: 'pending', label: 'Pendiente' },
+                  { value: 'overdue', label: 'Vencido' },
+                  { value: 'partially_paid', label: 'Parcial' },
+                  { value: 'processed', label: 'Procesado' },
+                ] as { value: typeof editStatus; label: string }[]
+              ).map(({ value, label }) => (
+                <TouchableOpacity
+                  key={value}
+                  onPress={() => setEditStatus(value)}
+                  className={`px-4 py-2 rounded-lg border ${
+                    editStatus === value
+                      ? 'bg-blue-600 border-blue-600'
+                      : 'border-gray-300 dark:border-gray-600'
+                  }`}>
+                  <Text
+                    className={`text-sm ${
+                      editStatus === value
+                        ? 'text-white font-semibold'
+                        : 'text-gray-700 dark:text-gray-200'
+                    }`}>
+                    {label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Monto */}
+            <ThemedText type="defaultSemiBold" className="mb-2">
+              Monto total
+            </ThemedText>
+            <TextInput
+              placeholder="0.00"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="decimal-pad"
+              value={editAmount}
+              onChangeText={setEditAmount}
+              className="border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-black dark:text-white mb-4"
+            />
+
+            {/* Saldo pendiente */}
+            <ThemedText type="defaultSemiBold" className="mb-2">
+              Saldo pendiente
+            </ThemedText>
+            <TextInput
+              placeholder="0.00"
+              placeholderTextColor="#9CA3AF"
+              keyboardType="decimal-pad"
+              value={editRemainingAmount}
+              onChangeText={setEditRemainingAmount}
+              className="border border-gray-300 dark:border-gray-600 rounded-xl p-3 text-black dark:text-white mb-6"
+            />
+
+            <TouchableOpacity
+              onPress={handleUpdateOccurrence}
+              className="bg-blue-600 rounded-xl p-4">
+              <Text className="text-white text-center font-semibold">Guardar cambios</Text>
+            </TouchableOpacity>
           </ScrollView>
         </SafeAreaView>
       </Modal>

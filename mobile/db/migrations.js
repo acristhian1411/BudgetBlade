@@ -373,4 +373,30 @@ export const initDB = async () => {
 
     await db.execAsync('PRAGMA user_version = 5');
   }
+
+  // Migrate to v6 if needed (ensure scheduled_plans.type is never null)
+  if (currentVersion < 6) {
+    // Fill from category when possible.
+    await db.runAsync(
+      `UPDATE scheduled_plans
+       SET type = CASE
+         WHEN (
+           SELECT c.type
+           FROM categories c
+           WHERE c.id = scheduled_plans.category_id
+         ) = 'income' THEN 'ingreso'
+         ELSE 'egreso'
+       END
+       WHERE type IS NULL`
+    );
+
+    // Final safeguard for any remaining nulls.
+    await db.runAsync(
+      `UPDATE scheduled_plans
+       SET type = 'egreso'
+       WHERE type IS NULL`
+    );
+
+    await db.execAsync('PRAGMA user_version = 6');
+  }
 };

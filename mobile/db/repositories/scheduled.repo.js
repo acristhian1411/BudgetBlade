@@ -25,6 +25,8 @@ export const createPlanWithInstallments = async (planData) => {
     type,
   } = planData;
 
+  const normalizedType = type === 'ingreso' ? 'ingreso' : 'egreso';
+
   const db = await getDb();
   
   // Insert plan
@@ -32,7 +34,16 @@ export const createPlanWithInstallments = async (planData) => {
     `INSERT INTO scheduled_plans 
      (category_id, entity_id, till_id, title, base_amount, total_installments, start_date, type) 
      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [categoryId, entityId, tillId, title, baseAmount || null, totalInstallments || null, startDate, type || null]
+    [
+      categoryId,
+      entityId,
+      tillId,
+      title,
+      baseAmount || null,
+      totalInstallments || null,
+      startDate,
+      normalizedType,
+    ]
   );
 
   const planId = planResult.lastInsertRowId;
@@ -49,7 +60,7 @@ export const createPlanWithInstallments = async (planData) => {
         `INSERT INTO scheduled_occurrences 
          (plan_id, installment_number, due_date, type, amount, remaining_amount, status) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [planId, i, dueDateStr, type, baseAmount || null, baseAmount || null, 'pending']
+        [planId, i, dueDateStr, normalizedType, baseAmount || null, baseAmount || null, 'pending']
       );
     }
   }
@@ -64,15 +75,20 @@ export const createPlanWithInstallments = async (planData) => {
 export const generateRollingOccurrences = async () => {
   const db = await getDb();
   
-  // Get all infinite plans
+  // Get all infinite plans with category type fallback for legacy plans without type.
   const plans = await db.getAllAsync(
-    `SELECT id, start_date, type, base_amount FROM scheduled_plans 
+    `SELECT
+       sp.id,
+       sp.start_date,
+       sp.type,
+       sp.base_amount,
+       c.type AS category_type
+     FROM scheduled_plans sp
+     LEFT JOIN categories c ON c.id = sp.category_id
      WHERE total_installments IS NULL`
   );
 
   const today = new Date();
-  const currentMonth = today.getFullYear() * 100 + today.getMonth() + 1;
-  const currentDateStr = today.toISOString().split('T')[0];
 
   for (const plan of plans) {
     // Check if occurrence already exists for this month
@@ -95,11 +111,18 @@ export const generateRollingOccurrences = async () => {
       const occNum = (today.getFullYear() - startDateObj.getFullYear()) * 12 + 
                      (today.getMonth() - startDateObj.getMonth()) + 1;
 
+      const planType =
+        plan.type === 'ingreso' || plan.type === 'egreso'
+          ? plan.type
+          : plan.category_type === 'income'
+            ? 'ingreso'
+            : 'egreso';
+
       await db.runAsync(
         `INSERT INTO scheduled_occurrences 
          (plan_id, installment_number, due_date, type, amount, remaining_amount, status) 
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [plan.id, occNum, dueDateStr, plan.type, plan.base_amount || null, plan.base_amount || null, 'pending']
+        [plan.id, occNum, dueDateStr, planType, plan.base_amount || null, plan.base_amount || null, 'pending']
       );
     }
   }
@@ -346,7 +369,10 @@ export const getPlanById = async (id) => {
        e.name AS entity_name,
        c.name AS category_name
      FROM scheduled_plans sp
-     LEFT JOIN entities e ON e.id = sp.entity_id
+       COALESCE(
+         sp.type,
+         CASE WHEN c.type = 'income' THEN 'ingreso' ELSE 'egreso' END
+       ) AS type,
      LEFT JOIN categories c ON c.id = sp.category_id
      WHERE sp.id = ?`,
     [id]
@@ -390,12 +416,44 @@ export const deletePlan = async (id) => {
 };
 
 /**
+ * Update editable fields of a scheduled occurrence.
+ * @param {number} id
+ * @param {Object} data
+ * @param {string} [data.dueDate]
+ * @param {string} [data.type]
+ * @param {number|null} [data.amount]
+ * @param {number|null} [data.remainingAmount]
+ * @param {string} [data.status]
+ */
+export const updateOccurrence = async (id, data) => {
+  const db = await getDb();
+  const { dueDate, type, amount, remainingAmount, status } = data;
+
+  await db.runAsync(
+    `UPDATE scheduled_occurrences
+     SET due_date        = COALESCE(?, due_date),
+         type            = COALESCE(?, type),
+         amount          = ?,
+         remaining_amount = ?,
+         status          = COALESCE(?, status)
+     WHERE id = ?`,
+    [
+      dueDate ?? null,
+      type ?? null,
+      amount !== undefined ? amount : null,
+      remainingAmount !== undefined ? remainingAmount : null,
+      status ?? null,
+      id,
+    ]
+  );
+};
+
+/**
  * Get occurrences for a specific plan.
  * @param {number} planId
  * @returns {Promise<Array>}
  */
-export const getOccurrencesByPlanId = async (planId) => {
-  const db = await getDb();
+export const getOccurrencesByPlanId = async (planId) => {  const db = await getDb();
   return db.getAllAsync(
     `SELECT * FROM scheduled_occurrences 
      WHERE plan_id = ? 
