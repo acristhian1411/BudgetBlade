@@ -2,7 +2,7 @@
   "expo": {
     "name": "BudgetBlade",
     "slug": "mobile",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mobile",
@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.agusdev14.mobile"
+      "package": "com.agusdev14.mobile",
+      "versionCode": 2
     },
     "web": {
       "output": "static",
