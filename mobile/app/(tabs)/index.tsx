@@ -33,7 +33,7 @@ export default function DashboardScreen() {
   const [upcoming, setUpcoming] = useState<any[]>([]);
   const [allPendingOverdue, setAllPendingOverdue] = useState<any[]>([]);
   const [refreshing, setRefreshing] = useState(false);
-  const [showAmounts, setShowAmounts] = useState(true);
+  const [showAmounts, setShowAmounts] = useState(false);
 
   const load = useCallback(async () => {
     try {
