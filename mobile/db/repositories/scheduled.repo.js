@@ -30,9 +30,9 @@ export const createPlanWithInstallments = async (planData) => {
   // Insert plan
   const planResult = await db.runAsync(
     `INSERT INTO scheduled_plans 
-     (category_id, entity_id, till_id, title, base_amount, total_installments, start_date) 
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [categoryId, entityId, tillId, title, baseAmount || null, totalInstallments || null, startDate]
+     (category_id, entity_id, till_id, title, base_amount, total_installments, start_date, type) 
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [categoryId, entityId, tillId, title, baseAmount || null, totalInstallments || null, startDate, type || null]
   );
 
   const planId = planResult.lastInsertRowId;
@@ -401,5 +401,47 @@ export const getOccurrencesByPlanId = async (planId) => {
      WHERE plan_id = ? 
      ORDER BY installment_number ASC`,
     [planId]
+  );
+};
+
+/**
+ * Get scheduled plans that have NO occurrences at all and whose start_date
+ * falls within the next N days (or is already past/today).
+ * Useful for showing plans on the dashboard before any occurrence is generated.
+ * @param {number} days - Look-ahead window in days (default 7)
+ * @returns {Promise<Array>}
+ */
+export const getPlansWithNoOccurrences = async (days = 7) => {
+  const db = await getDb();
+  const today = new Date().toISOString().split('T')[0];
+  const futureDate = new Date();
+  futureDate.setDate(futureDate.getDate() + days);
+  const futureDateStr = futureDate.toISOString().split('T')[0];
+
+  return db.getAllAsync(
+    `SELECT
+       sp.id,
+       sp.id AS plan_id,
+       1 AS installment_number,
+       sp.start_date AS due_date,
+       sp.type,
+       sp.base_amount AS amount,
+       sp.base_amount AS remaining_amount,
+       CASE WHEN sp.start_date < ? THEN 'overdue' ELSE 'pending' END AS status,
+       sp.title,
+       sp.till_id,
+       sp.total_installments,
+       e.name AS entity_name,
+       c.name AS category_name,
+       1 AS _is_plan_no_occurrence
+     FROM scheduled_plans sp
+     LEFT JOIN entities e ON e.id = sp.entity_id
+     LEFT JOIN categories c ON c.id = sp.category_id
+     WHERE sp.start_date <= ?
+       AND NOT EXISTS (
+         SELECT 1 FROM scheduled_occurrences so WHERE so.plan_id = sp.id
+       )
+     ORDER BY sp.start_date ASC`,
+    [today, futureDateStr]
   );
 };

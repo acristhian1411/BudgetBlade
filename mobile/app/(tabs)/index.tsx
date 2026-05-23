@@ -13,7 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 
 import { getTotal, getTotalByCategory, getLastN, deleteTransaction } from '@/db/repositories/transaction.repo';
 import { getCreditCardsDebtSummary } from '@/db/repositories/credit-card.repo';
-import { getUpcomingOccurrences, getPendingAndOverdue } from '@/db/repositories/scheduled.repo';
+import { getUpcomingOccurrences, getPendingAndOverdue, getPlansWithNoOccurrences } from '@/db/repositories/scheduled.repo';
 import { ThemedText } from '@/components/themed-text';
 
 const fmt = (val: number) =>
@@ -37,19 +37,23 @@ export default function DashboardScreen() {
 
   const load = useCallback(async () => {
     try {
-      const [t, c, r, debts, up, all] = await Promise.all([
+      const [t, c, r, debts, up, all, plansNoOcc] = await Promise.all([
         getTotal(),
         getTotalByCategory(),
         getLastN(5),
         getCreditCardsDebtSummary(),
         getUpcomingOccurrences(7),
         getPendingAndOverdue(),
+        getPlansWithNoOccurrences(7),
       ]);
       setTotal(t);
       setCategories(c);
       setRecent(r);
       setCreditCardDebts(debts);
-      setUpcoming(up);
+      // Merge plans-without-occurrences into upcoming, avoiding duplicates by plan_id
+      const upcomingPlanIds = new Set(up.map((o: any) => o.plan_id));
+      const extraPlans = plansNoOcc.filter((p: any) => !upcomingPlanIds.has(p.plan_id));
+      setUpcoming([...up, ...extraPlans].sort((a, b) => a.due_date.localeCompare(b.due_date)));
       setAllPendingOverdue(all);
     } catch (err) {
       console.warn('Error loading dashboard data:', err);
@@ -161,10 +165,14 @@ export default function DashboardScreen() {
             <FlatList
               horizontal
               data={upcoming}
-              keyExtractor={(item) => item.id.toString()}
+              keyExtractor={(item) => item._is_plan_no_occurrence ? `plan-${item.id}` : `occ-${item.id}`}
               renderItem={({ item }) => (
                 <TouchableOpacity
-                  onPress={() => router.push(`/new-transaction?occurrenceId=${item.id}`)}
+                  onPress={() =>
+                    item._is_plan_no_occurrence
+                      ? router.push('/(tabs)/compromisos' as any)
+                      : router.push(`/new-transaction?occurrenceId=${item.id}`)
+                  }
                   activeOpacity={0.7}
                   className="bg-white dark:bg-neutral-800 rounded-xl p-4 mr-3 w-56 border-l-4"
                   style={{

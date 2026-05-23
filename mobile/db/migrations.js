@@ -350,4 +350,27 @@ export const initDB = async () => {
 
     await db.execAsync('PRAGMA user_version = 4');
   }
+
+  // Migrate to v5 if needed (add type to scheduled_plans)
+  if (currentVersion < 5) {
+    try {
+      await db.execAsync(`ALTER TABLE scheduled_plans ADD COLUMN type TEXT;`);
+    } catch (_err) {
+      // Column already exists, ignore
+    }
+
+    // Backfill type from the first occurrence of each plan
+    await db.runAsync(
+      `UPDATE scheduled_plans
+       SET type = (
+         SELECT so.type
+         FROM scheduled_occurrences so
+         WHERE so.plan_id = scheduled_plans.id
+         LIMIT 1
+       )
+       WHERE type IS NULL`
+    );
+
+    await db.execAsync('PRAGMA user_version = 5');
+  }
 };
