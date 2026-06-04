@@ -210,7 +210,7 @@ export default function NewTransactionScreen() {
     }
     if (linkedOccurrence) {
       const remaining = Number(linkedOccurrence.remaining_amount ?? linkedOccurrence.amount ?? 0);
-      if (numAmount > remaining) {
+      if (remaining > 0 && numAmount > remaining) {
         Alert.alert('Error', 'El monto no puede ser mayor al saldo pendiente de la cuota.');
         return;
       }

@@ -244,14 +244,20 @@ export const applyOccurrencePayment = async (occurrenceId, transactionId, amount
   const currentRemaining = Number(
     occurrence.remaining_amount ?? occurrence.amount ?? 0
   );
+  const isVariableAmountOccurrence =
+    occurrence.amount == null && occurrence.remaining_amount == null;
 
-  if (paid > currentRemaining) {
+  // For variable-amount occurrences, remaining can be 0/null until first payment.
+  if (!isVariableAmountOccurrence && currentRemaining > 0 && paid > currentRemaining) {
     throw new Error('El abono no puede ser mayor al saldo pendiente.');
   }
+  if (!isVariableAmountOccurrence && currentRemaining <= 0) {
+    throw new Error('La cuota ya no tiene saldo pendiente.');
+  }
 
-  const nextRemainingRaw = currentRemaining - paid;
+  const nextRemainingRaw = isVariableAmountOccurrence ? 0 : currentRemaining - paid;
   const nextRemaining = Math.abs(nextRemainingRaw) < 0.000001 ? 0 : nextRemainingRaw;
-  const nextStatus = nextRemaining === 0 ? 'processed' : 'partially_paid';
+  const nextStatus = isVariableAmountOccurrence || nextRemaining === 0 ? 'processed' : 'partially_paid';
 
   await db.execAsync('BEGIN TRANSACTION');
   try {
