@@ -2,10 +2,10 @@
   "expo": {
     "name": "BudgetBlade",
     "slug": "mobile",
-    "version": "1.0.2",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mobile",
+    "scheme": "nativebudgetblade",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -42,7 +42,31 @@
         }
       ],
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      [
+        "expo-secure-store",
+        {
+          "configureAndroidBackup": true,
+          "faceIDPermission": "Permite a BudgetBlade desbloquearse con Face ID."
+        }
+      ],
+      "expo-local-authentication",
+      "@react-native-community/datetimepicker",
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "QuickAdd",
+              "label": "+ Nueva transacción",
+              "description": "Agregar un nuevo movimiento",
+              "minWidth": "40dp",
+              "minHeight": "40dp",
+              "targetCellWidth": 1,
+              "targetCellHeight": 1
+            }
+          ]
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

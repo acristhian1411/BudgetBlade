@@ -178,6 +178,17 @@ export const getSessionMasterKeyFingerprint = () => {
   return _sessionMasterKeyHex.slice(0, 16);
 };
 
+/** Returns the in-memory master key as a hex string, or null if the session is locked. */
+export const getSessionMasterKeyHex = () => _sessionMasterKeyHex;
+
+/** Loads a 32-byte master key (hex) into memory without deriving it from a password. */
+export const setSessionMasterKeyHex = (masterKeyHex: string) => {
+  if (!/^[0-9a-fA-F]{64}$/.test(masterKeyHex)) {
+    throw new Error('Clave maestra inválida.');
+  }
+  _sessionMasterKeyHex = masterKeyHex.toLowerCase();
+};
+
 export const serializeEncryptedJson = (json: object) => {
   const masterKey = getSessionMasterKey();
   const nonce = Crypto.getRandomBytes(WRAP_NONCE_SIZE);

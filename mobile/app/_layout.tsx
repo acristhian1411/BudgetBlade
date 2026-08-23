@@ -1,7 +1,8 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack, useRouter, useRootNavigationState, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import * as Linking from 'expo-linking';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -30,6 +31,7 @@ function RootNavigator() {
   const router = useRouter();
   const rootNavigationState = useRootNavigationState();
   const segments = useSegments();
+  const [pendingDeepLink, setPendingDeepLink] = useState<'/new-transaction' | null>(null);
   
   // Initialise DB and determine first-run state once on mount.
   useEffect(() => {
@@ -79,6 +81,29 @@ function RootNavigator() {
       }
     })();
   }, [isLoggedIn, router]);
+
+  // Capture a widget deep link received on cold start so it survives the auth redirect.
+  useEffect(() => {
+    (async () => {
+      const url = await Linking.getInitialURL();
+      if (!url) return;
+      const { path } = Linking.parse(url);
+      if (path === 'new-transaction') {
+        setPendingDeepLink('/new-transaction');
+      }
+    })();
+  }, []);
+
+  // Once logged in, open the pending widget deep link. Deferred with a timeout so
+  // the redirect to /(tabs) lands first and the modal stacks on top of it.
+  useEffect(() => {
+    if (isFirstRun !== false || !isLoggedIn || !pendingDeepLink) return;
+    const timer = setTimeout(() => {
+      router.push(pendingDeepLink);
+      setPendingDeepLink(null);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [isFirstRun, isLoggedIn, pendingDeepLink, router]);
 
   useEffect(() => {
     if (!isLoggedIn) return;

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Alert } from 'react-native';
 import {
   hasUser,
   getLoginLockStatus,
@@ -7,6 +7,15 @@ import {
   register as dbRegister,
 } from '@/db/repositories/user.repo';
 import { clearSessionMasterKey } from '@/services/master-key.service';
+import {
+  unlockWithBiometrics as biometricUnlock,
+  enableQuickUnlock,
+  declineQuickUnlock,
+  canUseBiometrics,
+  canUseDeviceAuth,
+  isQuickUnlockDecided,
+} from '@/services/biometric.service';
+import type { QuickUnlockResult } from '@/services/biometric.service';
 
 export type LoginResult = {
   ok: boolean;
@@ -36,6 +45,7 @@ type AuthState = {
   logout: () => void;
   register: (password: string) => Promise<void>;
   setFirstRun: (val: boolean) => void;
+  unlockWithBiometrics: () => Promise<QuickUnlockResult>;
 };
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -57,6 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (result.ok) {
       markActivity();
       setIsLoggedIn(true);
+      void maybeOfferQuickUnlock();
     }
     return result;
   };
@@ -73,6 +84,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     markActivity();
     setIsFirstRun(false);
     setIsLoggedIn(true);
+    void maybeOfferQuickUnlock();
+  };
+
+  const unlockWithBiometrics = async (): Promise<QuickUnlockResult> => {
+    const result = await biometricUnlock();
+    if (result.status === 'success') {
+      markActivity();
+      setIsLoggedIn(true);
+    }
+    return result;
+  };
+
+  // One-time prompt to enable quick unlock after the first password login/register.
+  const maybeOfferQuickUnlock = async () => {
+    try {
+      if (await isQuickUnlockDecided()) return;
+      const biometry = canUseBiometrics();
+      const deviceAuth = await canUseDeviceAuth();
+      if (!biometry && !deviceAuth) return;
+
+      Alert.alert(
+        'Desbloqueo rápido',
+        biometry
+          ? '¿Activar el desbloqueo con huella o PIN para entrar más rápido?'
+          : '¿Activar el desbloqueo con el PIN/patrón del dispositivo?',
+        [
+          { text: 'Ahora no', style: 'cancel', onPress: () => void declineQuickUnlock() },
+          { text: 'Activar', onPress: () => void enableQuickUnlock() },
+        ]
+      );
+    } catch {
+      // Non-critical: leave quick unlock undecided and offer again next time.
+    }
   };
 
   useEffect(() => {
@@ -115,6 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         register,
         setFirstRun: setIsFirstRun,
+        unlockWithBiometrics,
       }}
     >
       {children}

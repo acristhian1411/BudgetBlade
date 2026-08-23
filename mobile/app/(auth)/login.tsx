@@ -13,13 +13,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/context/auth.context';
 import { ThemedText } from '@/components/themed-text';
+import { isQuickUnlockEnabled } from '@/services/biometric.service';
 
 export default function LoginScreen() {
-  const { login, getLockStatus } = useAuth();
+  const { login, getLockStatus, unlockWithBiometrics } = useAuth();
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [remainingMs, setRemainingMs] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quickUnlockAvailable, setQuickUnlockAvailable] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
   const lockedSeconds = useMemo(() => Math.ceil(remainingMs / 1000), [remainingMs]);
   const isLocked = remainingMs > 0;
@@ -42,6 +45,32 @@ export default function LoginScreen() {
 
     return () => clearInterval(timer);
   }, [remainingMs]);
+
+  const handleBiometricUnlock = async () => {
+    if (unlocking) return;
+    setUnlocking(true);
+    try {
+      const result = await unlockWithBiometrics();
+      if (result.status === 'unavailable') {
+        setQuickUnlockAvailable(false);
+      }
+    } catch {
+      setQuickUnlockAvailable(false);
+    } finally {
+      setUnlocking(false);
+    }
+  };
+
+  useEffect(() => {
+    (async () => {
+      const enabled = await isQuickUnlockEnabled();
+      setQuickUnlockAvailable(enabled);
+      if (enabled) {
+        void handleBiometricUnlock();
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogin = async () => {
     if (isSubmitting) return;
@@ -94,6 +123,17 @@ export default function LoginScreen() {
         <ThemedText className="text-center text-gray-500 mb-8">
           Ingresa tu contraseña para continuar
         </ThemedText>
+
+        {quickUnlockAvailable ? (
+          <TouchableOpacity
+            onPress={handleBiometricUnlock}
+            disabled={unlocking}
+            className="mb-5 rounded-xl p-4 bg-blue-600/10 border border-blue-600">
+            <Text className="text-blue-600 text-center font-semibold text-base">
+              {unlocking ? 'Desbloqueando...' : 'Desbloquear con huella / PIN'}
+            </Text>
+          </TouchableOpacity>
+        ) : null}
 
         <View className="relative mb-5">
           <TextInput
