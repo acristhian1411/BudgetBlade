@@ -36,10 +36,10 @@ const TABLE_COLUMNS = {
     'failed_attempts',
     'locked_until',
   ],
-  tills: ['id', 'name', 'account_number'],
-  categories: ['id', 'name', 'type'],
-  entities: ['id', 'name', 'type', 'contact'],
-  credit_cards: ['id', 'till_id', 'name', 'credit_limit'],
+  tills: ['id', 'name', 'account_number', 'uuid', 'updated_at', 'deleted_at'],
+  categories: ['id', 'name', 'type', 'uuid', 'updated_at', 'deleted_at'],
+  entities: ['id', 'name', 'type', 'contact', 'uuid', 'updated_at', 'deleted_at'],
+  credit_cards: ['id', 'till_id', 'name', 'credit_limit', 'uuid', 'updated_at', 'deleted_at'],
   transactions: [
     'id',
     'till_id',
@@ -53,6 +53,9 @@ const TABLE_COLUMNS = {
     'credit_card_id',
     'affects_balance',
     'parent_transaction_id',
+    'uuid',
+    'updated_at',
+    'deleted_at',
   ],
   scheduled_plans: [
     'id',
@@ -64,6 +67,9 @@ const TABLE_COLUMNS = {
     'total_installments',
     'start_date',
     'type',
+    'uuid',
+    'updated_at',
+    'deleted_at',
   ],
   scheduled_occurrences: [
     'id',
@@ -75,6 +81,9 @@ const TABLE_COLUMNS = {
     'remaining_amount',
     'status',
     'transaction_id',
+    'uuid',
+    'updated_at',
+    'deleted_at',
   ],
   scheduled_payments_mapping: [
     'id',
@@ -82,6 +91,9 @@ const TABLE_COLUMNS = {
     'transaction_id',
     'amount_paid',
     'payment_date',
+    'uuid',
+    'updated_at',
+    'deleted_at',
   ],
   credit_card_payment_items: [
     'id',
@@ -89,6 +101,9 @@ const TABLE_COLUMNS = {
     'purchase_transaction_id',
     'payment_transaction_id',
     'amount_paid',
+    'uuid',
+    'updated_at',
+    'deleted_at',
   ],
 };
 
@@ -122,12 +137,18 @@ const TillsRowSchema = z.object({
   id: z.number(),
   name: nullableString.optional(),
   account_number: nullableString.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const CategoriesRowSchema = z.object({
   id: z.number(),
   name: nullableString.optional(),
   type: nullableString.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const EntitiesRowSchema = z.object({
@@ -135,6 +156,9 @@ const EntitiesRowSchema = z.object({
   name: nullableString.optional(),
   type: nullableString.optional(),
   contact: nullableString.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const CreditCardsRowSchema = z.object({
@@ -142,6 +166,9 @@ const CreditCardsRowSchema = z.object({
   till_id: nullableNumber.optional(),
   name: nullableString.optional(),
   credit_limit: nullableNumber.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const TransactionsRowSchema = z.object({
@@ -157,6 +184,9 @@ const TransactionsRowSchema = z.object({
   credit_card_id: nullableNumber.optional(),
   affects_balance: nullableNumber.optional(),
   parent_transaction_id: nullableNumber.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const ScheduledPlansRowSchema = z.object({
@@ -169,6 +199,9 @@ const ScheduledPlansRowSchema = z.object({
   total_installments: nullableNumber.optional(),
   start_date: nullableString.optional(),
   type: nullableString.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const ScheduledOccurrencesRowSchema = z.object({
@@ -181,6 +214,9 @@ const ScheduledOccurrencesRowSchema = z.object({
   remaining_amount: nullableNumber.optional(),
   status: nullableString.optional(),
   transaction_id: nullableNumber.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const ScheduledPaymentsMappingRowSchema = z.object({
@@ -189,6 +225,9 @@ const ScheduledPaymentsMappingRowSchema = z.object({
   transaction_id: nullableNumber.optional(),
   amount_paid: nullableNumber.optional(),
   payment_date: nullableString.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const CreditCardPaymentItemsRowSchema = z.object({
@@ -197,6 +236,9 @@ const CreditCardPaymentItemsRowSchema = z.object({
   purchase_transaction_id: nullableNumber.optional(),
   payment_transaction_id: nullableNumber.optional(),
   amount_paid: nullableNumber.optional(),
+  uuid: nullableString.optional(),
+  updated_at: nullableString.optional(),
+  deleted_at: nullableString.optional(),
 }).strict();
 
 const BackupTablesSchema = z.object({
@@ -667,6 +709,10 @@ export const importDatabaseBackup = async (content, formatHint, password = null)
     for (const tableName of DELETE_ORDER) {
       await db.runAsync(`DELETE FROM ${tableName}`);
     }
+
+    // Restoring a backup replaces all data; any pending sync operations from the
+    // previous dataset are stale and must not be pushed later.
+    await db.runAsync('DELETE FROM sync_queue');
 
     for (const tableName of INSERT_ORDER) {
       const rows = Array.isArray(validatedIncomingTables?.[tableName]) ? validatedIncomingTables[tableName] : [];

@@ -1,4 +1,17 @@
+import * as Crypto from 'expo-crypto';
 import { getDb } from './index';
+
+const SYNC_TABLES = [
+  'tills',
+  'categories',
+  'entities',
+  'credit_cards',
+  'transactions',
+  'scheduled_plans',
+  'scheduled_occurrences',
+  'credit_card_payment_items',
+  'scheduled_payments_mapping',
+];
 
 const CATEGORIES_SEEDER = [
   // Egresos
@@ -398,5 +411,58 @@ export const initDB = async () => {
     );
 
     await db.execAsync('PRAGMA user_version = 6');
+  }
+
+  // Migrate to v7 if needed (remote-sync identity: uuid + soft delete)
+  if (currentVersion < 7) {
+    for (const table of SYNC_TABLES) {
+      try {
+        await db.execAsync(`ALTER TABLE ${table} ADD COLUMN uuid TEXT;`);
+      } catch (_err) {
+        // Column already exists, ignore
+      }
+      try {
+        await db.execAsync(`ALTER TABLE ${table} ADD COLUMN updated_at TEXT;`);
+      } catch (_err) {
+        // Column already exists, ignore
+      }
+      try {
+        await db.execAsync(`ALTER TABLE ${table} ADD COLUMN deleted_at TEXT;`);
+      } catch (_err) {
+        // Column already exists, ignore
+      }
+    }
+
+    const now = new Date().toISOString();
+
+    // Backfill uuid (client-generated) and updated_at for pre-existing rows.
+    for (const table of SYNC_TABLES) {
+      const rows = await db.getAllAsync(`SELECT id FROM ${table} WHERE uuid IS NULL`);
+      for (const row of rows) {
+        await db.runAsync(`UPDATE ${table} SET uuid = ? WHERE id = ?`, [
+          Crypto.randomUUID(),
+          row.id,
+        ]);
+      }
+      await db.runAsync(`UPDATE ${table} SET updated_at = ? WHERE updated_at IS NULL`, [now]);
+      await db.execAsync(
+        `CREATE UNIQUE INDEX IF NOT EXISTS idx_${table}_uuid ON ${table}(uuid);`
+      );
+    }
+
+    await db.execAsync(
+      `CREATE TABLE IF NOT EXISTS sync_queue (
+        id TEXT PRIMARY KEY,
+        entity_type TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        operation TEXT NOT NULL,
+        payload TEXT,
+        status TEXT DEFAULT 'pending',
+        attempts INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+      );`
+    );
+
+    await db.execAsync('PRAGMA user_version = 7');
   }
 };

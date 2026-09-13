@@ -9,11 +9,11 @@ export const getAllCategories = async (type = null) => {
   const db = await getDb();
   if (type) {
     return db.getAllAsync(
-      'SELECT * FROM categories WHERE type = ? ORDER BY name',
+      'SELECT * FROM categories WHERE type = ? AND deleted_at IS NULL ORDER BY name',
       [type]
     );
   }
-  return db.getAllAsync('SELECT * FROM categories ORDER BY type, name');
+  return db.getAllAsync('SELECT * FROM categories WHERE deleted_at IS NULL ORDER BY type, name');
 };
 
 /**
@@ -23,5 +23,5 @@ export const getAllCategories = async (type = null) => {
  */
 export const getCategoryById = async (id) => {
   const db = await getDb();
-  return db.getFirstAsync('SELECT * FROM categories WHERE id = ?', [id]);
+  return db.getFirstAsync('SELECT * FROM categories WHERE id = ? AND deleted_at IS NULL', [id]);
 };

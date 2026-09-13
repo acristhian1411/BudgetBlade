@@ -2,6 +2,7 @@ import { initDB } from '../db/migrations';
 import * as txRepo from '../db/repositories/transaction.repo';
 import * as tillRepo from '../db/repositories/till.repo';
 import * as creditCardRepo from '../db/repositories/credit-card.repo';
+import { getPending } from '../db/repositories/sync-queue.repo';
 import { getDb } from '../db/index';
 
 beforeEach(async () => {
@@ -9,7 +10,7 @@ beforeEach(async () => {
 });
 
 describe('transaction.repo', () => {
-  it('stores amount as positive and returns the new id', async () => {
+  it('stores amount as positive, stamps uuid/updated_at and enqueues a create', async () => {
     const tillId = await tillRepo.createTill('Efectivo', null);
     const id = await txRepo.createTransaction({
       tillId,
@@ -24,6 +25,14 @@ describe('transaction.repo', () => {
     const row = await db.getFirstAsync('SELECT * FROM transactions WHERE id = ?', [id]);
     expect(row.amount).toBe(50);
     expect(row.description).toBe('compra');
+    expect(row.uuid).toBeTruthy();
+    expect(row.updated_at).toBeTruthy();
+
+    const pending = await getPending();
+    const txOps = pending.filter((p) => p.entity_type === 'transactions');
+    expect(txOps).toHaveLength(1);
+    expect(txOps[0].operation).toBe('create');
+    expect(txOps[0].entity_id).toBe(row.uuid);
   });
 
   it('returns transactions with till and credit card names', async () => {
@@ -76,12 +85,16 @@ describe('transaction.repo', () => {
     expect(await txRepo.getTotal()).toBe(0);
   });
 
-  it('deletes a single transaction', async () => {
+  it('deletes a single transaction (soft-delete)', async () => {
     const tillId = await tillRepo.createTill('Efectivo', null);
     const id = await txRepo.createTransaction({ tillId, amount: 10, type: 'egreso', date: '2026-01-01' });
 
     await txRepo.deleteTransaction(id);
     expect(await txRepo.getTransactions()).toHaveLength(0);
+
+    const db = await getDb();
+    const row = await db.getFirstAsync('SELECT deleted_at FROM transactions WHERE id = ?', [id]);
+    expect(row.deleted_at).toBeTruthy();
   });
 
   it('deletes both legs of a transfer together', async () => {

@@ -1,4 +1,5 @@
 import { getDb } from '../index';
+import { newUuid, nowIso, enqueueEntityWrite } from './sync-queue.repo';
 
 /**
  * Get all entities.
@@ -6,7 +7,7 @@ import { getDb } from '../index';
  */
 export const getAllEntities = async () => {
   const db = await getDb();
-  return db.getAllAsync('SELECT * FROM entities ORDER BY name');
+  return db.getAllAsync('SELECT * FROM entities WHERE deleted_at IS NULL ORDER BY name');
 };
 
 /**
@@ -16,55 +17,58 @@ export const getAllEntities = async () => {
  */
 export const getEntityById = async (id) => {
   const db = await getDb();
-  return db.getFirstAsync('SELECT * FROM entities WHERE id = ?', [id]);
+  return db.getFirstAsync('SELECT * FROM entities WHERE id = ? AND deleted_at IS NULL', [id]);
 };
 
 /**
  * Create a new entity.
- * @param {string} name
- * @param {('client' | 'provider' | 'both')} type
- * @param {string} contact - Optional contact info
  * @returns {Promise<number>} Entity ID
  */
 export const createEntity = async (name, type, contact = null) => {
   const db = await getDb();
+  const uuid = newUuid();
   const result = await db.runAsync(
-    'INSERT INTO entities (name, type, contact) VALUES (?, ?, ?)',
-    [name, type, contact || null]
+    'INSERT INTO entities (name, type, contact, uuid, updated_at) VALUES (?, ?, ?, ?, ?)',
+    [name, type, contact || null, uuid, nowIso()]
   );
+  await enqueueEntityWrite({ entityType: 'entities', entityId: uuid, operation: 'create' });
   return result.lastInsertRowId;
 };
 
 /**
  * Update an entity.
  * @param {number} id
- * @param {string} name
- * @param {('client' | 'provider' | 'both')} type
- * @param {string} contact
  */
 export const updateEntity = async (id, name, type, contact = null) => {
   const db = await getDb();
+  const row = await db.getFirstAsync('SELECT uuid FROM entities WHERE id = ?', [id]);
   await db.runAsync(
-    'UPDATE entities SET name = ?, type = ?, contact = ? WHERE id = ?',
-    [name, type, contact || null, id]
+    'UPDATE entities SET name = ?, type = ?, contact = ?, updated_at = ? WHERE id = ?',
+    [name, type, contact || null, nowIso(), id]
   );
+  if (row?.uuid) {
+    await enqueueEntityWrite({ entityType: 'entities', entityId: row.uuid, operation: 'update' });
+  }
 };
 
 /**
- * Delete an entity.
+ * Soft-delete an entity.
  * NOTE: Does not cascade-delete plans/occurrences. Caller should handle.
  * @param {number} id
  */
 export const deleteEntity = async (id) => {
   const db = await getDb();
-  await db.runAsync('DELETE FROM entities WHERE id = ?', [id]);
+  const row = await db.getFirstAsync('SELECT uuid FROM entities WHERE id = ?', [id]);
+  const now = nowIso();
+  await db.runAsync('UPDATE entities SET deleted_at = ?, updated_at = ? WHERE id = ?', [now, now, id]);
+  if (row?.uuid) {
+    await enqueueEntityWrite({ entityType: 'entities', entityId: row.uuid, operation: 'delete' });
+  }
 };
 
 /**
  * Get summary of an entity's financial activity.
  * Groups pending and processed occurrences by type (income/egreso).
- * @param {number} entityId
- * @returns {Promise<Object>} { pendingEgreso, pendingIngreso, processedEgreso, processedIngreso }
  */
 export const getEntitySummary = async (entityId) => {
   const db = await getDb();
@@ -90,10 +94,10 @@ export const getEntitySummary = async (entityId) => {
        END), 0) AS processed_ingreso
      FROM scheduled_occurrences so
      JOIN scheduled_plans sp ON sp.id = so.plan_id
-     WHERE sp.entity_id = ?`,
+     WHERE sp.entity_id = ? AND sp.deleted_at IS NULL AND so.deleted_at IS NULL`,
     [entityId]
   );
-  
+
   const row = rows[0] || {};
   return {
     pendingEgreso: row.pending_egreso ?? 0,
@@ -105,8 +109,6 @@ export const getEntitySummary = async (entityId) => {
 
 /**
  * Get all plans for an entity grouped by plan ID (useful for detailed view).
- * @param {number} entityId
- * @returns {Promise<Array>} Array of { plan_id, title, pendingCount, totalAmount, installments }
  */
 export const getInstallmentGroups = async (entityId) => {
   const db = await getDb();
@@ -118,8 +120,8 @@ export const getInstallmentGroups = async (entityId) => {
        COALESCE(SUM(CASE WHEN so.status IN ('pending', 'partially_paid', 'overdue') THEN COALESCE(so.remaining_amount, so.amount, 0) ELSE 0 END), 0) AS total_amount,
        COALESCE(SUM(CASE WHEN so.status = 'processed' THEN 1 END), 0) AS processed_count
      FROM scheduled_plans sp
-     LEFT JOIN scheduled_occurrences so ON so.plan_id = sp.id
-     WHERE sp.entity_id = ?
+     LEFT JOIN scheduled_occurrences so ON so.plan_id = sp.id AND so.deleted_at IS NULL
+     WHERE sp.entity_id = ? AND sp.deleted_at IS NULL
      GROUP BY sp.id
      ORDER BY sp.title`,
     [entityId]

@@ -2,6 +2,7 @@ import { initDB } from '../db/migrations';
 import * as creditCardRepo from '../db/repositories/credit-card.repo';
 import * as tillRepo from '../db/repositories/till.repo';
 import * as txRepo from '../db/repositories/transaction.repo';
+import { getPending } from '../db/repositories/sync-queue.repo';
 import { getDb } from '../db/index';
 
 beforeEach(async () => {
@@ -18,11 +19,16 @@ describe('credit-card.repo', () => {
     let cards = await creditCardRepo.getAllCreditCards();
     expect(cards).toHaveLength(1);
     expect(cards[0].till_name).toBe('Banco');
+    expect(cards[0].uuid).toBeTruthy();
 
     await creditCardRepo.updateCreditCard(id, { tillId, name: 'Master', creditLimit: 2000 });
     cards = await creditCardRepo.getAllCreditCards();
     expect(cards[0].name).toBe('Master');
     expect(cards[0].credit_limit).toBe(2000);
+
+    const pending = await getPending();
+    expect(pending.filter((p) => p.entity_type === 'credit_cards').map((p) => p.operation))
+      .toEqual(['create', 'update']);
   });
 
   it('computes pending debt (purchases - payments)', async () => {
@@ -90,6 +96,10 @@ describe('credit-card.repo', () => {
     const db = await getDb();
     const tx = await db.getFirstAsync('SELECT credit_card_id FROM transactions LIMIT 1');
     expect(tx.credit_card_id).toBeNull();
+
+    // Soft-delete: the card row is preserved as a tombstone.
+    const card = await db.getFirstAsync('SELECT deleted_at FROM credit_cards WHERE id = ?', [cardId]);
+    expect(card.deleted_at).toBeTruthy();
   });
 
   it('computes debt summary across cards', async () => {

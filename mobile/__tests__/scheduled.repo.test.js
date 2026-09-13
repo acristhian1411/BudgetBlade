@@ -4,6 +4,7 @@ import * as tillRepo from '../db/repositories/till.repo';
 import * as categoryRepo from '../db/repositories/category.repo';
 import * as entityRepo from '../db/repositories/entity.repo';
 import * as txRepo from '../db/repositories/transaction.repo';
+import { getPending } from '../db/repositories/sync-queue.repo';
 
 const iso = (d) => d.toISOString().split('T')[0];
 const isoToday = () => iso(new Date());
@@ -52,6 +53,18 @@ describe('scheduled.repo', () => {
     expect(occurrences.map((o) => o.installment_number)).toEqual([1, 2, 3]);
     expect(occurrences[0].status).toBe('pending');
     expect(occurrences[0].remaining_amount).toBe(100);
+
+    // Sync-aware: plan and occurrences are stamped with uuid/updated_at and enqueued.
+    for (const o of occurrences) {
+      expect(o.uuid).toBeTruthy();
+      expect(o.updated_at).toBeTruthy();
+    }
+    const plan = await scheduledRepo.getPlanById(planId);
+    expect(plan.uuid).toBeTruthy();
+
+    const pending = await getPending();
+    expect(pending.filter((p) => p.entity_type === 'scheduled_plans')).toHaveLength(1);
+    expect(pending.filter((p) => p.entity_type === 'scheduled_occurrences')).toHaveLength(3);
   });
 
   it('lists all plans with counts', async () => {
@@ -207,10 +220,9 @@ describe('scheduled.repo', () => {
     expect(detail.category_name).toBeTruthy();
   });
 
-  // getPlanById has a latent SQL bug: the `COALESCE(...) AS type,` expression is
-  // misplaced between FROM and LEFT JOIN, which raises a syntax error.
-  // Documented here to be fixed in the sync-aware rewrite (Phase 3).
-  it.skip('getPlanById returns plan with entity/category names (currently broken)', async () => {
+  // getPlanById previously had a latent SQL bug (misplaced COALESCE); fixed in
+  // the sync-aware rewrite (Phase 3).
+  it('getPlanById returns plan with entity/category names', async () => {
     const entityId = await entityRepo.createEntity('Proveedor', 'provider', null);
     const planId = await scheduledRepo.createPlanWithInstallments({
       categoryId, entityId, tillId, title: 'A', baseAmount: 100,
@@ -219,5 +231,6 @@ describe('scheduled.repo', () => {
 
     const plan = await scheduledRepo.getPlanById(planId);
     expect(plan.entity_name).toBe('Proveedor');
+    expect(plan.category_name).toBeTruthy();
   });
 });

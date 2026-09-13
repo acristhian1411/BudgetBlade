@@ -1,16 +1,8 @@
 import { getDb } from '../index';
+import { newUuid, nowIso, enqueueEntityWrite } from './sync-queue.repo';
 
 /**
  * Create a plan and bulk-insert installments if total_installments is provided.
- * @param {Object} planData
- * @param {number} planData.categoryId
- * @param {number} planData.entityId
- * @param {number} planData.tillId
- * @param {string} planData.title
- * @param {number | null} planData.baseAmount - null for variable amounts (utilities)
- * @param {number | null} planData.totalInstallments - null for infinite recurring
- * @param {string} planData.startDate - ISO date (YYYY-MM-DD)
- * @param {string} planData.type - 'ingreso' or 'egreso'
  * @returns {Promise<number>} Plan ID
  */
 export const createPlanWithInstallments = async (planData) => {
@@ -28,12 +20,12 @@ export const createPlanWithInstallments = async (planData) => {
   const normalizedType = type === 'ingreso' ? 'ingreso' : 'egreso';
 
   const db = await getDb();
-  
-  // Insert plan
+
+  const planUuid = newUuid();
   const planResult = await db.runAsync(
-    `INSERT INTO scheduled_plans 
-     (category_id, entity_id, till_id, title, base_amount, total_installments, start_date, type) 
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO scheduled_plans
+     (category_id, entity_id, till_id, title, base_amount, total_installments, start_date, type, uuid, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       categoryId,
       entityId,
@@ -43,10 +35,13 @@ export const createPlanWithInstallments = async (planData) => {
       totalInstallments || null,
       startDate,
       normalizedType,
+      planUuid,
+      nowIso(),
     ]
   );
 
   const planId = planResult.lastInsertRowId;
+  const occurrenceUuids = [];
 
   // If total_installments is set, generate occurrences
   if (totalInstallments && totalInstallments > 0) {
@@ -56,13 +51,20 @@ export const createPlanWithInstallments = async (planData) => {
       dueDate.setMonth(dueDate.getMonth() + (i - 1));
       const dueDateStr = dueDate.toISOString().split('T')[0];
 
+      const occUuid = newUuid();
+      occurrenceUuids.push(occUuid);
       await db.runAsync(
-        `INSERT INTO scheduled_occurrences 
-         (plan_id, installment_number, due_date, type, amount, remaining_amount, status) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [planId, i, dueDateStr, normalizedType, baseAmount || null, baseAmount || null, 'pending']
+        `INSERT INTO scheduled_occurrences
+         (plan_id, installment_number, due_date, type, amount, remaining_amount, status, uuid, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [planId, i, dueDateStr, normalizedType, baseAmount || null, baseAmount || null, 'pending', occUuid, nowIso()]
       );
     }
+  }
+
+  await enqueueEntityWrite({ entityType: 'scheduled_plans', entityId: planUuid, operation: 'create' });
+  for (const occUuid of occurrenceUuids) {
+    await enqueueEntityWrite({ entityType: 'scheduled_occurrences', entityId: occUuid, operation: 'create' });
   }
 
   return planId;
@@ -74,7 +76,7 @@ export const createPlanWithInstallments = async (planData) => {
  */
 export const generateRollingOccurrences = async () => {
   const db = await getDb();
-  
+
   // Get all infinite plans with category type fallback for legacy plans without type.
   const plans = await db.getAllAsync(
     `SELECT
@@ -85,7 +87,7 @@ export const generateRollingOccurrences = async () => {
        c.type AS category_type
      FROM scheduled_plans sp
      LEFT JOIN categories c ON c.id = sp.category_id
-     WHERE total_installments IS NULL`
+     WHERE total_installments IS NULL AND sp.deleted_at IS NULL`
   );
 
   const today = new Date();
@@ -93,22 +95,21 @@ export const generateRollingOccurrences = async () => {
   for (const plan of plans) {
     // Check if occurrence already exists for this month
     const existingMonth = await db.getFirstAsync(
-      `SELECT id FROM scheduled_occurrences 
-       WHERE plan_id = ? AND due_date LIKE ?`,
+      `SELECT id FROM scheduled_occurrences
+       WHERE plan_id = ? AND due_date LIKE ? AND deleted_at IS NULL`,
       [plan.id, `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}%`]
     );
 
     if (!existingMonth) {
-      // Create occurrence for current month (due on the 1st, or start_date if it's in this month)
       let dueDate = new Date(today.getFullYear(), today.getMonth(), 1);
       const startDateObj = new Date(plan.start_date);
-      
+
       if (startDateObj.getMonth() === today.getMonth() && startDateObj.getFullYear() === today.getFullYear()) {
         dueDate = startDateObj;
       }
 
       const dueDateStr = dueDate.toISOString().split('T')[0];
-      const occNum = (today.getFullYear() - startDateObj.getFullYear()) * 12 + 
+      const occNum = (today.getFullYear() - startDateObj.getFullYear()) * 12 +
                      (today.getMonth() - startDateObj.getMonth()) + 1;
 
       const planType =
@@ -118,37 +119,41 @@ export const generateRollingOccurrences = async () => {
             ? 'ingreso'
             : 'egreso';
 
+      const occUuid = newUuid();
       await db.runAsync(
-        `INSERT INTO scheduled_occurrences 
-         (plan_id, installment_number, due_date, type, amount, remaining_amount, status) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [plan.id, occNum, dueDateStr, planType, plan.base_amount || null, plan.base_amount || null, 'pending']
+        `INSERT INTO scheduled_occurrences
+         (plan_id, installment_number, due_date, type, amount, remaining_amount, status, uuid, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [plan.id, occNum, dueDateStr, planType, plan.base_amount || null, plan.base_amount || null, 'pending', occUuid, nowIso()]
       );
+
+      await enqueueEntityWrite({ entityType: 'scheduled_occurrences', entityId: occUuid, operation: 'create' });
     }
   }
 };
 
 /**
  * Mark overdue: update status to 'overdue' for pending occurrences with due_date < today.
+ * Derived state (the server recomputes it), so it is NOT enqueued for sync.
  */
 export const markOverdue = async () => {
   const db = await getDb();
   const today = new Date().toISOString().split('T')[0];
-  
+
   await db.runAsync(
-    `UPDATE scheduled_occurrences 
-     SET status = 'overdue' 
+    `UPDATE scheduled_occurrences
+     SET status = 'overdue', updated_at = ?
      WHERE status IN ('pending', 'partially_paid')
        AND due_date < ?
-       AND COALESCE(remaining_amount, amount, 0) > 0`,
-    [today]
+       AND COALESCE(remaining_amount, amount, 0) > 0
+       AND deleted_at IS NULL`,
+    [nowIso(), today]
   );
 };
 
 /**
  * Get all pending and overdue occurrences with plan and entity info.
  * Ordered by due_date ASC.
- * @returns {Promise<Array>}
  */
 export const getPendingAndOverdue = async () => {
   const db = await getDb();
@@ -160,7 +165,7 @@ export const getPendingAndOverdue = async () => {
        so.due_date,
        so.type,
        so.amount,
-      COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
+       COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
        so.status,
        so.transaction_id,
        sp.title,
@@ -175,6 +180,8 @@ export const getPendingAndOverdue = async () => {
      LEFT JOIN entities e ON e.id = sp.entity_id
      LEFT JOIN categories c ON c.id = sp.category_id
      WHERE so.status IN ('pending', 'partially_paid', 'overdue')
+       AND so.deleted_at IS NULL
+       AND sp.deleted_at IS NULL
      ORDER BY so.due_date ASC`
   );
 };
@@ -182,7 +189,6 @@ export const getPendingAndOverdue = async () => {
 /**
  * Get upcoming occurrences within N days.
  * @param {number} days - Default 7
- * @returns {Promise<Array>}
  */
 export const getUpcomingOccurrences = async (days = 7) => {
   const db = await getDb();
@@ -199,7 +205,7 @@ export const getUpcomingOccurrences = async (days = 7) => {
        so.due_date,
        so.type,
        so.amount,
-      COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
+       COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
        so.status,
        sp.title,
        sp.till_id,
@@ -209,7 +215,10 @@ export const getUpcomingOccurrences = async (days = 7) => {
      JOIN scheduled_plans sp ON sp.id = so.plan_id
      LEFT JOIN entities e ON e.id = sp.entity_id
      LEFT JOIN categories c ON c.id = sp.category_id
-     WHERE so.status IN ('pending', 'partially_paid') AND so.due_date BETWEEN ? AND ?
+     WHERE so.status IN ('pending', 'partially_paid')
+       AND so.deleted_at IS NULL
+       AND sp.deleted_at IS NULL
+       AND so.due_date BETWEEN ? AND ?
      ORDER BY so.due_date ASC`,
     [today, futureDateStr]
   );
@@ -217,10 +226,6 @@ export const getUpcomingOccurrences = async (days = 7) => {
 
 /**
  * Apply a payment to an occurrence and update remaining amount + status.
- * @param {number} occurrenceId
- * @param {number} transactionId
- * @param {number} amountPaid
- * @param {string} paymentDate
  */
 export const applyOccurrencePayment = async (occurrenceId, transactionId, amountPaid, paymentDate) => {
   const db = await getDb();
@@ -231,9 +236,9 @@ export const applyOccurrencePayment = async (occurrenceId, transactionId, amount
   }
 
   const occurrence = await db.getFirstAsync(
-    `SELECT id, amount, remaining_amount, status
+    `SELECT id, uuid, amount, remaining_amount, status
      FROM scheduled_occurrences
-     WHERE id = ?`,
+     WHERE id = ? AND deleted_at IS NULL`,
     [occurrenceId]
   );
 
@@ -247,7 +252,6 @@ export const applyOccurrencePayment = async (occurrenceId, transactionId, amount
   const isVariableAmountOccurrence =
     occurrence.amount == null && occurrence.remaining_amount == null;
 
-  // For variable-amount occurrences, remaining can be 0/null until first payment.
   if (!isVariableAmountOccurrence && currentRemaining > 0 && paid > currentRemaining) {
     throw new Error('El abono no puede ser mayor al saldo pendiente.');
   }
@@ -259,21 +263,25 @@ export const applyOccurrencePayment = async (occurrenceId, transactionId, amount
   const nextRemaining = Math.abs(nextRemainingRaw) < 0.000001 ? 0 : nextRemainingRaw;
   const nextStatus = isVariableAmountOccurrence || nextRemaining === 0 ? 'processed' : 'partially_paid';
 
+  const mappingUuid = newUuid();
+  const now = nowIso();
+
   await db.execAsync('BEGIN TRANSACTION');
   try {
     await db.runAsync(
-      `INSERT INTO scheduled_payments_mapping (occurrence_id, transaction_id, amount_paid, payment_date)
-       VALUES (?, ?, ?, ?)`,
-      [occurrenceId, transactionId, paid, paymentDate]
+      `INSERT INTO scheduled_payments_mapping (occurrence_id, transaction_id, amount_paid, payment_date, uuid, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [occurrenceId, transactionId, paid, paymentDate, mappingUuid, now]
     );
 
     await db.runAsync(
       `UPDATE scheduled_occurrences
        SET remaining_amount = ?,
            status = ?,
-           transaction_id = CASE WHEN transaction_id IS NULL THEN ? ELSE transaction_id END
+           transaction_id = CASE WHEN transaction_id IS NULL THEN ? ELSE transaction_id END,
+           updated_at = ?
        WHERE id = ?`,
-      [nextRemaining, nextStatus, transactionId, occurrenceId]
+      [nextRemaining, nextStatus, transactionId, now, occurrenceId]
     );
 
     await db.execAsync('COMMIT');
@@ -281,6 +289,9 @@ export const applyOccurrencePayment = async (occurrenceId, transactionId, amount
     await db.execAsync('ROLLBACK');
     throw error;
   }
+
+  await enqueueEntityWrite({ entityType: 'scheduled_payments_mapping', entityId: mappingUuid, operation: 'create' });
+  await enqueueEntityWrite({ entityType: 'scheduled_occurrences', entityId: occurrence.uuid, operation: 'update' });
 
   return {
     remainingAmount: nextRemaining,
@@ -290,13 +301,11 @@ export const applyOccurrencePayment = async (occurrenceId, transactionId, amount
 
 /**
  * Backward-compatible helper to fully process an occurrence.
- * @param {number} occurrenceId
- * @param {number} transactionId
  */
 export const processOccurrence = async (occurrenceId, transactionId) => {
   const db = await getDb();
   const occurrence = await db.getFirstAsync(
-    `SELECT amount, remaining_amount FROM scheduled_occurrences WHERE id = ?`,
+    `SELECT amount, remaining_amount FROM scheduled_occurrences WHERE id = ? AND deleted_at IS NULL`,
     [occurrenceId]
   );
   const remaining = Number(occurrence?.remaining_amount ?? occurrence?.amount ?? 0);
@@ -309,8 +318,6 @@ export const processOccurrence = async (occurrenceId, transactionId) => {
 
 /**
  * Get payment mapping history for a specific occurrence.
- * @param {number} occurrenceId
- * @returns {Promise<Array>}
  */
 export const getPaymentHistoryForOccurrence = async (occurrenceId) => {
   const db = await getDb();
@@ -327,6 +334,8 @@ export const getPaymentHistoryForOccurrence = async (occurrenceId) => {
      FROM scheduled_payments_mapping spm
      JOIN transactions t ON t.id = spm.transaction_id
      WHERE spm.occurrence_id = ?
+       AND spm.deleted_at IS NULL
+       AND t.deleted_at IS NULL
      ORDER BY spm.payment_date ASC, spm.id ASC`,
     [occurrenceId]
   );
@@ -334,7 +343,6 @@ export const getPaymentHistoryForOccurrence = async (occurrenceId) => {
 
 /**
  * Get all plans with entity and category info.
- * @returns {Promise<Array>}
  */
 export const getAllPlans = async () => {
   const db = await getDb();
@@ -351,12 +359,13 @@ export const getAllPlans = async () => {
        e.name AS entity_name,
        c.name AS category_name,
        COUNT(so.id) AS total_occurrences,
-      COALESCE(SUM(CASE WHEN so.status IN ('pending', 'partially_paid', 'overdue') THEN 1 ELSE 0 END), 0) AS pending_count,
+       COALESCE(SUM(CASE WHEN so.status IN ('pending', 'partially_paid', 'overdue') THEN 1 ELSE 0 END), 0) AS pending_count,
        COALESCE(SUM(CASE WHEN so.status = 'processed' THEN 1 ELSE 0 END), 0) AS processed_count
      FROM scheduled_plans sp
      LEFT JOIN entities e ON e.id = sp.entity_id
      LEFT JOIN categories c ON c.id = sp.category_id
-     LEFT JOIN scheduled_occurrences so ON so.plan_id = sp.id
+     LEFT JOIN scheduled_occurrences so ON so.plan_id = sp.id AND so.deleted_at IS NULL
+     WHERE sp.deleted_at IS NULL
      GROUP BY sp.id
      ORDER BY sp.start_date DESC`
   );
@@ -364,8 +373,6 @@ export const getAllPlans = async () => {
 
 /**
  * Get a single plan by ID with full details.
- * @param {number} id
- * @returns {Promise<Object | null>}
  */
 export const getPlanById = async (id) => {
   const db = await getDb();
@@ -375,27 +382,22 @@ export const getPlanById = async (id) => {
        e.name AS entity_name,
        c.name AS category_name
      FROM scheduled_plans sp
-       COALESCE(
-         sp.type,
-         CASE WHEN c.type = 'income' THEN 'ingreso' ELSE 'egreso' END
-       ) AS type,
+     LEFT JOIN entities e ON e.id = sp.entity_id
      LEFT JOIN categories c ON c.id = sp.category_id
-     WHERE sp.id = ?`,
+     WHERE sp.id = ? AND sp.deleted_at IS NULL`,
     [id]
   );
 };
 
 /**
  * Get a single occurrence by ID with full plan and entity info.
- * @param {number} id
- * @returns {Promise<Object | null>}
  */
 export const getOccurrenceById = async (id) => {
   const db = await getDb();
   return db.getFirstAsync(
     `SELECT
        so.*,
-      COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
+       COALESCE(so.remaining_amount, so.amount, 0) AS remaining_amount,
        sp.title,
        sp.category_id,
        sp.till_id,
@@ -406,34 +408,52 @@ export const getOccurrenceById = async (id) => {
      JOIN scheduled_plans sp ON sp.id = so.plan_id
      LEFT JOIN entities e ON e.id = sp.entity_id
      LEFT JOIN categories c ON c.id = sp.category_id
-     WHERE so.id = ?`,
+     WHERE so.id = ?
+       AND so.deleted_at IS NULL
+       AND sp.deleted_at IS NULL`,
     [id]
   );
 };
 
 /**
- * Delete a plan and all its occurrences.
- * @param {number} id
+ * Soft-delete a plan and all its occurrences.
  */
 export const deletePlan = async (id) => {
   const db = await getDb();
-  await db.runAsync('DELETE FROM scheduled_occurrences WHERE plan_id = ?', [id]);
-  await db.runAsync('DELETE FROM scheduled_plans WHERE id = ?', [id]);
+  const plan = await db.getFirstAsync('SELECT uuid FROM scheduled_plans WHERE id = ?', [id]);
+  const now = nowIso();
+
+  const occurrences = await db.getAllAsync(
+    'SELECT uuid FROM scheduled_occurrences WHERE plan_id = ? AND deleted_at IS NULL',
+    [id]
+  );
+  await db.runAsync(
+    'UPDATE scheduled_occurrences SET deleted_at = ?, updated_at = ? WHERE plan_id = ? AND deleted_at IS NULL',
+    [now, now, id]
+  );
+  await db.runAsync(
+    'UPDATE scheduled_plans SET deleted_at = ?, updated_at = ? WHERE id = ?',
+    [now, now, id]
+  );
+
+  for (const occ of occurrences) {
+    if (occ.uuid) {
+      await enqueueEntityWrite({ entityType: 'scheduled_occurrences', entityId: occ.uuid, operation: 'delete' });
+    }
+  }
+  if (plan?.uuid) {
+    await enqueueEntityWrite({ entityType: 'scheduled_plans', entityId: plan.uuid, operation: 'delete' });
+  }
 };
 
 /**
  * Update editable fields of a scheduled occurrence.
- * @param {number} id
- * @param {Object} data
- * @param {string} [data.dueDate]
- * @param {string} [data.type]
- * @param {number|null} [data.amount]
- * @param {number|null} [data.remainingAmount]
- * @param {string} [data.status]
  */
 export const updateOccurrence = async (id, data) => {
   const db = await getDb();
   const { dueDate, type, amount, remainingAmount, status } = data;
+
+  const row = await db.getFirstAsync('SELECT uuid FROM scheduled_occurrences WHERE id = ?', [id]);
 
   await db.runAsync(
     `UPDATE scheduled_occurrences
@@ -441,7 +461,8 @@ export const updateOccurrence = async (id, data) => {
          type            = COALESCE(?, type),
          amount          = ?,
          remaining_amount = ?,
-         status          = COALESCE(?, status)
+         status          = COALESCE(?, status),
+         updated_at      = ?
      WHERE id = ?`,
     [
       dueDate ?? null,
@@ -449,20 +470,24 @@ export const updateOccurrence = async (id, data) => {
       amount !== undefined ? amount : null,
       remainingAmount !== undefined ? remainingAmount : null,
       status ?? null,
+      nowIso(),
       id,
     ]
   );
+
+  if (row?.uuid) {
+    await enqueueEntityWrite({ entityType: 'scheduled_occurrences', entityId: row.uuid, operation: 'update' });
+  }
 };
 
 /**
  * Get occurrences for a specific plan.
- * @param {number} planId
- * @returns {Promise<Array>}
  */
-export const getOccurrencesByPlanId = async (planId) => {  const db = await getDb();
+export const getOccurrencesByPlanId = async (planId) => {
+  const db = await getDb();
   return db.getAllAsync(
-    `SELECT * FROM scheduled_occurrences 
-     WHERE plan_id = ? 
+    `SELECT * FROM scheduled_occurrences
+     WHERE plan_id = ? AND deleted_at IS NULL
      ORDER BY installment_number ASC`,
     [planId]
   );
@@ -471,9 +496,6 @@ export const getOccurrencesByPlanId = async (planId) => {  const db = await getD
 /**
  * Get scheduled plans that have NO occurrences at all and whose start_date
  * falls within the next N days (or is already past/today).
- * Useful for showing plans on the dashboard before any occurrence is generated.
- * @param {number} days - Look-ahead window in days (default 7)
- * @returns {Promise<Array>}
  */
 export const getPlansWithNoOccurrences = async (days = 7) => {
   const db = await getDb();
@@ -502,6 +524,7 @@ export const getPlansWithNoOccurrences = async (days = 7) => {
      LEFT JOIN entities e ON e.id = sp.entity_id
      LEFT JOIN categories c ON c.id = sp.category_id
      WHERE sp.start_date <= ?
+       AND sp.deleted_at IS NULL
        AND NOT EXISTS (
          SELECT 1 FROM scheduled_occurrences so WHERE so.plan_id = sp.id
        )
